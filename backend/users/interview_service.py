@@ -1,41 +1,40 @@
 """
-interview_service.py — Mock Interview AI Service using Groq API.
-Gemini se Groq pe migrate kiya gaya hai with automatic failover support.
+interview_service.py — Mock Interview AI Service.
+Strategy: Gemini pehle try karo, fail ho to Groq automatically fallback karta hai.
 """
 
 import json
 from django.utils import timezone
-from .groq_client import call_groq, call_groq_json, clean_json_response
+from .ai_client import call_ai, call_ai_json, clean_json_response
 
 
-# ─── Legacy compatibility wrapper (used by battles/views.py & views.py) ────────
+# ─── Legacy Compatibility Wrappers ────────────────────────────────────────────
+# Yeh functions purane naam rakhe hain taaki views.py break na ho.
 
 def get_gemini_response(prompt, system_instruction=None):
     """
-    Legacy function name rakha hai taaki purana code break na ho.
-    Internally Groq use karta hai ab.
+    Legacy function — internally Gemini first, Groq fallback use karta hai.
     """
-    return call_groq(prompt, system_instruction=system_instruction)
+    return call_ai(prompt, system_instruction=system_instruction)
 
 
 def get_gemini_model(system_instruction=None):
     """
-    Legacy wrapper — views.py mein get_gemini_model() calls ke liye.
-    Ek fake model object return karta hai jo internally Groq use karta hai.
+    Legacy wrapper — views.py mein get_gemini_model().generate_content() calls ke liye.
     """
-    class _GroqModelWrapper:
+    class _AIModelWrapper:
         def __init__(self, sys_inst):
             self.sys_inst = sys_inst
 
         def generate_content(self, prompt):
-            text = call_groq(prompt, system_instruction=self.sys_inst)
+            text = call_ai(prompt, system_instruction=self.sys_inst)
             class _Resp:
                 pass
             r = _Resp()
             r.text = text
             return r
 
-    return _GroqModelWrapper(system_instruction)
+    return _AIModelWrapper(system_instruction)
 
 
 # ─── Interview Functions ───────────────────────────────────────────────────────
@@ -43,7 +42,7 @@ def get_gemini_model(system_instruction=None):
 def start_gemini_interview(profile, target_role, difficulty, interview_type):
     """
     Pehla interview question generate karta hai.
-    (Function name 'gemini' rakha hai backward compatibility ke liye)
+    Gemini first → Groq fallback.
     """
     skills = [skill.name for skill in profile.skills.all()]
     skills_text = ", ".join(skills) if skills else "No skills added yet"
@@ -57,14 +56,14 @@ def start_gemini_interview(profile, target_role, difficulty, interview_type):
         f"- Known Skills: {skills_text}\n"
         f"- Difficulty Level: {difficulty}\n"
         f"- Interview Type: {interview_type}\n\n"
-        "Role & Guidelines:\n"
+        "Guidelines:\n"
         "1. Ask exactly one single question to start the interview.\n"
-        "2. Do not include any greeting, friendly introduction, or setup commentary.\n"
-        "3. Output ONLY the question text itself. No markdown, no quotes, no conversational filler."
+        "2. Do not include any greeting, introduction, or setup commentary.\n"
+        "3. Output ONLY the question text itself. No markdown, no quotes."
     )
 
     try:
-        return call_groq(
+        return call_ai(
             "Generate the very first interview question for the candidate.",
             system_instruction=system_instruction,
             temperature=0.8,
@@ -80,7 +79,8 @@ def start_gemini_interview(profile, target_role, difficulty, interview_type):
 
 def evaluate_and_generate_next(session, last_question, answer_text, next_question_number):
     """
-    Pichle answer ko evaluate karta hai aur next question generate karta hai.
+    Pichle answer evaluate karo + next question generate karo.
+    Gemini first → Groq fallback.
     """
     past_questions = session.questions.all().order_by('timestamp')
     history_lines = []
@@ -97,30 +97,29 @@ def evaluate_and_generate_next(session, last_question, answer_text, next_questio
 
     if next_question_number == 5:
         coding_instruction = (
-            "Since this is the 5th and final question of the interview, it MUST be a coding question.\n"
-            "Ask the candidate to write a specific code snippet or function to solve a technical problem relevant to the role."
+            "Since this is the 5th and final question, it MUST be a coding question. "
+            "Ask the candidate to write a specific code snippet or function."
         )
     else:
-        coding_instruction = "Ensure the question is a relevant theory/conceptual interview question matching the role and difficulty."
+        coding_instruction = "Ask a relevant theory/conceptual interview question matching the role and difficulty."
 
     system_instruction = (
         "You are an expert technical interviewer. Evaluate interview answers and generate follow-up questions. "
         "Always respond with pure valid JSON only — no markdown, no explanation."
     )
 
-    prompt = f"""You are evaluating an ongoing mock interview for the role of '{session.target_role}' (Difficulty: '{session.difficulty}', Type: '{session.interview_type}').
+    prompt = f"""Evaluate this ongoing mock interview for the role of '{session.target_role}' (Difficulty: '{session.difficulty}', Type: '{session.interview_type}').
 
-Interview History so far:
+Interview History:
 {history_text}
 
-Task:
+Tasks:
 1. Evaluate the candidate's last answer: "{answer_text}"
    to the question: "{last_question.question_text}"
-2. Assign a score (1-10) for this answer.
-3. Generate the next question (Question #{next_question_number} of 5).
-   {coding_instruction}
+2. Assign a score (1-10).
+3. Generate Question #{next_question_number} of 5. {coding_instruction}
 
-Return ONLY a valid JSON object (no markdown):
+Return ONLY valid JSON (no markdown):
 {{
     "evaluation": "1-2 sentences of constructive feedback.",
     "score": 8,
@@ -129,7 +128,7 @@ Return ONLY a valid JSON object (no markdown):
 }}"""
 
     try:
-        result = call_groq_json(prompt, system_instruction=system_instruction, temperature=0.7)
+        result = call_ai_json(prompt, system_instruction=system_instruction, temperature=0.7)
         return result
     except Exception as e:
         print(f"Error in evaluate_and_generate_next: {e}")
@@ -153,7 +152,8 @@ Return ONLY a valid JSON object (no markdown):
 
 def finalize_interview_scores(session):
     """
-    Saari answers evaluate karta hai, scores calculate karta hai, session update karta hai.
+    Complete interview evaluate karo, scores calculate karo.
+    Gemini first → Groq fallback.
     """
     questions = session.questions.all().order_by('timestamp')
     transcript_lines = []
@@ -167,22 +167,21 @@ def finalize_interview_scores(session):
 
     system_instruction = (
         "You are a senior engineering manager reviewing mock interview transcripts. "
-        "Provide fair, accurate performance scores. "
-        "Always respond with pure valid JSON only — no markdown, no explanation."
+        "Provide fair performance scores. Always respond with pure valid JSON only."
     )
 
     prompt = f"""Review the complete transcript of the mock interview and provide a final performance report.
 
-Candidate Profile:
+Candidate:
 - Target Role: {session.target_role}
 - Experience Level: {session.user_profile.experience or 'Fresher'}
-- Target Difficulty: {session.difficulty}
+- Difficulty: {session.difficulty}
 - Interview Type: {session.interview_type}
 
-Complete Interview Transcript:
+Transcript:
 {transcript_text}
 
-Evaluate the candidate across 5 metrics (0-100) and return ONLY valid JSON:
+Return ONLY valid JSON (no markdown):
 {{
     "technical_score": 85,
     "communication_score": 75,
@@ -196,8 +195,7 @@ Evaluate the candidate across 5 metrics (0-100) and return ONLY valid JSON:
 }}"""
 
     try:
-        result = call_groq_json(prompt, system_instruction=system_instruction, temperature=0.5)
-
+        result = call_ai_json(prompt, system_instruction=system_instruction, temperature=0.5)
         session.technical_score = result.get("technical_score", 70)
         session.communication_score = result.get("communication_score", 70)
         session.problem_solving_score = result.get("problem_solving_score", 70)
@@ -211,8 +209,9 @@ Evaluate the candidate across 5 metrics (0-100) and return ONLY valid JSON:
     except Exception as e:
         print(f"Error finalizing interview scores: {e}")
         q_count = session.questions.all().count()
-        answered_qs = session.questions.exclude(user_answer__isnull=True).exclude(user_answer="").exclude(user_answer="[Skipped]")
-        answered_count = answered_qs.count()
+        answered_count = session.questions.exclude(
+            user_answer__isnull=True
+        ).exclude(user_answer="").exclude(user_answer="[Skipped]").count()
         base_score = int((answered_count / max(1, q_count)) * 80)
         session.technical_score = max(50, base_score + 10)
         session.communication_score = max(50, base_score + 5)

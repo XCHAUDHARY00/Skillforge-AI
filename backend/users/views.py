@@ -696,9 +696,9 @@ def analyze_github(request):
             key=lambda x: -x['percentage']
         )[:6]
         
-        # Groq AI analysis of GitHub strength
+        # AI analysis of GitHub strength — Gemini first, Groq fallback
         try:
-            from .groq_client import call_groq_json
+            from .ai_client import call_ai_json
             skill_names = [s.name for s in profile.skills.all()]
             github_prompt = f"""A software developer named {username} has these GitHub stats:
 - Public repos: {user_data.get('public_repos', 0)}
@@ -720,13 +720,13 @@ Analyze their GitHub profile and return ONLY valid JSON:
   "resume_consistency": 72,
   "consistency_points": ["point 1", "point 2", "point 3"]
 }}"""
-            ai_analysis = call_groq_json(
+            ai_analysis = call_ai_json(
                 github_prompt,
                 system_instruction="You are an expert developer profile analyzer. Return only valid JSON.",
                 temperature=0.5,
             )
         except Exception as ai_err:
-            print('GitHub Gemini error:', ai_err)
+            print('GitHub AI error:', ai_err)
             ai_analysis = {
                 "strength_score": min(70, user_data.get('public_repos', 0) * 3 + total_stars * 2),
                 "consistency": 65, "collaboration": 55, "code_quality": 70,
@@ -817,9 +817,9 @@ def upload_resume(request):
         # Limit text for Gemini (first 3000 chars is plenty)
         resume_text_trimmed = resume_text[:3000]
         
-        # Groq AI analysis of resume
+        # AI analysis of resume — Gemini first, Groq fallback
         try:
-            from .groq_client import call_groq_json
+            from .ai_client import call_ai_json
             profile = request.user.profile
             skill_names = [s.name for s in profile.skills.all()]
             github_langs = []
@@ -852,13 +852,13 @@ Return this exact JSON structure:
   ],
   "summary": "2-3 sentence overall assessment of the resume."
 }}"""
-            analysis = call_groq_json(
+            analysis = call_ai_json(
                 resume_prompt,
                 system_instruction="You are an expert resume analyst and ATS specialist. Return only valid JSON.",
                 temperature=0.4,
             )
         except Exception as ai_err:
-            print('Resume Groq error:', ai_err)
+            print('Resume AI error:', ai_err)
             # Fallback analysis
             analysis = {
                 "score": 68, "ats": 72, "skill_relevance": 70, "project_strength": 65,

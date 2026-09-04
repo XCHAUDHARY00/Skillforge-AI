@@ -1,10 +1,10 @@
 """
-service.py — All AI-powered career services using Groq API.
-Gemini se Groq pe migrate kiya gaya hai with automatic failover support.
+service.py — Career AI Services.
+Strategy: Gemini pehle try karo, fail ho to Groq automatically fallback karta hai.
 """
 
 import json
-from .groq_client import call_groq, call_groq_with_history, call_groq_json, clean_json_response
+from .ai_client import call_ai, call_ai_json, call_ai_chat
 
 
 # ─── Career Roadmap ────────────────────────────────────────────────────────────
@@ -12,6 +12,7 @@ from .groq_client import call_groq, call_groq_with_history, call_groq_json, clea
 def generate_career_roadmap(user_profile):
     """
     User ki profile dekh kar step-by-step career roadmap generate karta hai.
+    Gemini first → Groq fallback.
     """
     skills = [skill.name for skill in user_profile.skills.all()]
     skills_text = ", ".join(skills) if skills else "No skills added yet"
@@ -19,19 +20,18 @@ def generate_career_roadmap(user_profile):
     goal_title = latest_goal.title if latest_goal else "General Career Growth"
 
     system_instruction = (
-        "You are an elite AI Career Coach. Your job is to generate structured, "
-        "actionable career roadmaps. Always respond with pure valid JSON only — "
-        "no markdown, no explanation, no extra text."
+        "You are an elite AI Career Coach. Generate structured, actionable career roadmaps. "
+        "Always respond with pure valid JSON only — no markdown, no explanation, no extra text."
     )
 
     prompt = f"""Based on the following user profile, generate a step-by-step learning roadmap to help them achieve their goal.
 
-Current User Profile:
+User Profile:
 - Experience Level: {user_profile.experience}
 - Known Skills: {skills_text}
 - Target Goal: {goal_title}
 
-Return ONLY this exact JSON format (no markdown wrappers):
+Return ONLY this exact JSON format (no markdown):
 {{
     "roadmap": [
         {{
@@ -46,7 +46,7 @@ Return ONLY this exact JSON format (no markdown wrappers):
 Generate 6-8 steps minimum."""
 
     try:
-        result = call_groq_json(prompt, system_instruction=system_instruction)
+        result = call_ai_json(prompt, system_instruction=system_instruction)
         return result
     except Exception as e:
         print("Roadmap Error:", str(e))
@@ -57,14 +57,14 @@ Generate 6-8 steps minimum."""
 
 def interact_with_career_coach(user_profile, new_message):
     """
-    User ki profile aur chat history ke saath AI career coach se baat karta hai.
+    Career coach chat — Gemini first, Groq fallback.
     """
     from .models import ChatMessage
 
     # Database se purani chat history
     chat_history_qs = ChatMessage.objects.filter(user_profile=user_profile).order_by('timestamp')
 
-    # Groq format mein convert karo
+    # History convert karo
     formatted_history = []
     for msg in chat_history_qs:
         role = 'user' if msg.sender == 'user' else 'assistant'
@@ -83,15 +83,15 @@ def interact_with_career_coach(user_profile, new_message):
     system_instruction = f"""You are an elite AI Career Coach named "CareerMind AI Coach". 
 Your goal is to guide the user on their career path, answer career-related questions, and help them achieve their goals.
 
-User Profile Context:
+User Profile:
 - Experience Level: {user_profile.experience}
 - Known Skills: {skills_text}
 - Target Career Goal: {goal_title} ({goal_desc})
 
-Give professional, practical, and highly motivating answers. Keep your answers brief, clean, and conversational. Do NOT use markdown code blocks for normal chat responses."""
+Give professional, practical, and highly motivating answers. Keep your answers brief, clean, and conversational."""
 
     try:
-        ai_response_text = call_groq_with_history(
+        ai_response_text = call_ai_chat(
             formatted_history,
             system_instruction=system_instruction,
             max_tokens=1024,
@@ -99,16 +99,8 @@ Give professional, practical, and highly motivating answers. Keep your answers b
         )
 
         # Save both messages to DB
-        ChatMessage.objects.create(
-            user_profile=user_profile,
-            sender='user',
-            message=new_message
-        )
-        ChatMessage.objects.create(
-            user_profile=user_profile,
-            sender='ai',
-            message=ai_response_text
-        )
+        ChatMessage.objects.create(user_profile=user_profile, sender='user', message=new_message)
+        ChatMessage.objects.create(user_profile=user_profile, sender='ai', message=ai_response_text)
 
         return {"response": ai_response_text}
 
@@ -121,7 +113,7 @@ Give professional, practical, and highly motivating answers. Keep your answers b
 
 def analyze_career_dna(user_profile):
     """
-    User ki profile dekh kar complete career DNA analysis karta hai.
+    Career DNA analysis — Gemini first, Groq fallback.
     """
     skills = [skill.name for skill in user_profile.skills.all()]
     skills_text = ", ".join(skills) if skills else "No skills added yet"
@@ -130,8 +122,8 @@ def analyze_career_dna(user_profile):
     goal_title = latest_goal.title if latest_goal else "General Software Development"
 
     system_instruction = (
-        "You are an AI Career Analyst. You analyze student profiles and return structured JSON. "
-        "Always respond with pure valid JSON only — no markdown, no explanation, no extra text."
+        "You are an AI Career Analyst. Analyze student profiles and return structured JSON. "
+        "Always respond with pure valid JSON only — no markdown, no extra text."
     )
 
     prompt = f"""Analyze the following student profile and return a detailed career DNA analysis.
@@ -164,7 +156,7 @@ Return ONLY valid JSON in this exact format:
 }}"""
 
     try:
-        result = call_groq_json(prompt, system_instruction=system_instruction)
+        result = call_ai_json(prompt, system_instruction=system_instruction)
         return result
     except Exception as e:
         print("Career DNA Error:", str(e))
@@ -175,14 +167,14 @@ Return ONLY valid JSON in this exact format:
 
 def analyze_skill_gaps(user_profile, target_role):
     """
-    User ki skills aur target role ke beech ka gap calculate karta hai.
+    Skill gap analysis — Gemini first, Groq fallback.
     """
     skills = [skill.name for skill in user_profile.skills.all()]
     skills_text = ", ".join(skills) if skills else "None"
 
     system_instruction = (
-        "You are a Career Skills Analyst. Compare student skills against job role requirements "
-        "and return structured JSON analysis. Always respond with pure valid JSON only."
+        "You are a Career Skills Analyst. Compare student skills against job role requirements. "
+        "Always respond with pure valid JSON only."
     )
 
     prompt = f"""Compare this student's skills against the requirements for the role: "{target_role}".
@@ -202,7 +194,7 @@ Return ONLY valid JSON in this exact format:
             "required": 7,
             "gap": 5,
             "priority": "high",
-            "reason": "Docker is essential for deploying backend apps in production environments."
+            "reason": "Docker is essential for deploying backend apps in production."
         }}
     ]
 }}
@@ -211,7 +203,7 @@ Priority rules: gap >= 5 → "high", gap 3 or 4 → "medium", gap <= 2 → "low"
 Return exactly 6 to 8 skills. overall_gap_score is 0-100 (higher = more ready)."""
 
     try:
-        result = call_groq_json(prompt, system_instruction=system_instruction)
+        result = call_ai_json(prompt, system_instruction=system_instruction)
         return result
     except Exception as e:
         print("Skill Gap Error:", str(e))
