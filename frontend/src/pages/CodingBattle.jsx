@@ -178,6 +178,24 @@ const CodingBattle = () => {
     if (gameMode === 'quiz') setIsWaitingForOpponent(true);
   };
 
+  const handleFlee = async () => {
+    if (roomCode && battleState !== 'lobby') {
+      try {
+        const apiUrl = getApiUrl();
+        await fetch(`${apiUrl}battles/flee/`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ room_code: roomCode, player: me.name, playerId: playerId })
+        });
+      } catch (e) {
+        console.error('Flee error:', e);
+      }
+    }
+    setBattleState('lobby');
+    setRoomCode('');
+    setWinner(null);
+  };
+
   // Coding mode submit
   const handleCodingSubmit = async () => {
     if (battleState !== 'playing') return;
@@ -185,7 +203,7 @@ const CodingBattle = () => {
     await submitToBackend(0, timeTaken);
   };
 
-  // Quiz: user clicks "Next" or "Submit Battle" after answering
+  // Quiz: user clicks "Next" or "Submit Battle" after answering (Instant 0-lag transition)
   const handleQuizNext = () => {
     if (selectedOption === null) return; // must pick an answer
     
@@ -194,7 +212,7 @@ const CodingBattle = () => {
     const isRight = selectedOption === currentQ.ans;
     const newScore = isRight ? correctAnswersCount + 1 : correctAnswersCount;
 
-    // Log this answer for review
+    // Log this answer for review (shown after submitting battle)
     setQuizAnswerLog(prev => [...prev, {
       q: currentQ.q,
       opts: currentQ.opts,
@@ -203,26 +221,17 @@ const CodingBattle = () => {
       isRight
     }]);
 
-    // Show brief right/wrong result
-    setAnsweredOption(selectedOption);
-    setShowingResult(true);
+    setCorrectAnswersCount(newScore);
 
-    setTimeout(() => {
-      setShowingResult(false);
-      setAnsweredOption(null);
-
-      if (currentQuestionIndex < questionsList.length - 1) {
-        setCurrentQuestionIndex(prev => prev + 1);
-        setSelectedOption(null);
-        setCorrectAnswersCount(newScore);
-      } else {
-        // All questions done — submit to backend
-        setCorrectAnswersCount(newScore);
-        const timeTaken = 300 - timeLeft;
-        submitToBackend(newScore, timeTaken);
-        setIsWaitingForOpponent(true);
-      }
-    }, 1200); // Show result for 1.2 seconds
+    if (currentQuestionIndex < questionsList.length - 1) {
+      setCurrentQuestionIndex(prev => prev + 1);
+      setSelectedOption(null);
+    } else {
+      // All questions done — submit to backend instantly
+      const timeTaken = 300 - timeLeft;
+      submitToBackend(newScore, timeTaken);
+      setIsWaitingForOpponent(true);
+    }
   };
 
   const getLocalQuizQuestions = () => {
@@ -496,7 +505,7 @@ const CodingBattle = () => {
         </div>
 
         <button 
-          onClick={() => setBattleState('lobby')}
+          onClick={handleFlee}
           className="flex items-center gap-2 text-sm text-gray-400 hover:text-white transition-colors bg-white/5 hover:bg-white/10 px-4 py-2 rounded-lg border border-white/5"
         >
           <X size={16} /> Flee Battle
@@ -719,33 +728,19 @@ const CodingBattle = () => {
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {questionsList[currentQuestionIndex]?.opts.map((opt, i) => {
-                        const correctIdx = questionsList[currentQuestionIndex].ans;
-                        let btnClass = 'bg-black/50 hover:bg-white/10 border-white/10 hover:border-emerald-500/50 text-white';
-                        
-                        if (showingResult) {
-                          // After answering: show green for correct, red for wrong chosen
-                          if (i === correctIdx) {
-                            btnClass = 'bg-emerald-500/20 border-emerald-500 text-emerald-400';
-                          } else if (i === answeredOption && i !== correctIdx) {
-                            btnClass = 'bg-red-500/20 border-red-500 text-red-400';
-                          } else {
-                            btnClass = 'bg-black/30 border-white/5 text-gray-500 opacity-50';
-                          }
-                        } else if (selectedOption === i) {
-                          // Before submitting: just highlight selected in blue
-                          btnClass = 'bg-indigo-500/20 border-indigo-500 text-indigo-300';
-                        }
+                        const isSelected = selectedOption === i;
+                        const btnClass = isSelected 
+                          ? 'bg-emerald-500/20 border-emerald-500 text-emerald-300 font-semibold shadow-lg shadow-emerald-500/10 scale-[1.01]' 
+                          : 'bg-black/50 hover:bg-white/10 border-white/10 hover:border-emerald-500/30 text-white';
                         
                         return (
                           <button 
                             key={i} 
-                            onClick={() => !showingResult && setSelectedOption(i)}
-                            disabled={showingResult}
+                            onClick={() => setSelectedOption(i)}
                             className={`p-4 rounded-xl text-left font-medium transition-all flex items-center justify-between border ${btnClass}`}
                           >
                             <span>{opt}</span>
-                            {showingResult && i === correctIdx && <CheckCircle size={18} className="text-emerald-400 flex-shrink-0" />}
-                            {showingResult && i === answeredOption && i !== correctIdx && <XCircle size={18} className="text-red-400 flex-shrink-0" />}
+                            {isSelected && <CheckCircle size={18} className="text-emerald-400 flex-shrink-0" />}
                           </button>
                         );
                       })}
@@ -755,7 +750,7 @@ const CodingBattle = () => {
                   <div className="flex justify-end">
                     <button
                       onClick={handleQuizNext}
-                      disabled={battleState !== 'playing' || selectedOption === null || showingResult}
+                      disabled={battleState !== 'playing' || selectedOption === null}
                       className="flex items-center gap-2 px-8 py-3 rounded-xl font-bold text-white transition-all shadow-lg bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 shadow-emerald-500/30 hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
                     >
                       {currentQuestionIndex < questionsList.length - 1 ? 'Next Question →' : 'Submit Battle →'}
