@@ -1,129 +1,102 @@
-import os
+"""
+service.py — All AI-powered career services using Groq API.
+Gemini se Groq pe migrate kiya gaya hai with automatic failover support.
+"""
+
 import json
-from dotenv import load_dotenv
-from google import genai
-from google.genai import types
-
-load_dotenv()
+from .groq_client import call_groq, call_groq_with_history, call_groq_json, clean_json_response
 
 
-def _get_client():
-    """Returns configured google.genai Client."""
-    api_key = os.getenv("GEMINI_API_KEY")
-    if not api_key:
-        raise ValueError("GEMINI_API_KEY is missing!")
-    return genai.Client(api_key=api_key)
-
+# ─── Career Roadmap ────────────────────────────────────────────────────────────
 
 def generate_career_roadmap(user_profile):
     """
-    Ye function AI se baat karega aur user ki profile dekh kar ek roadmap return karega.
+    User ki profile dekh kar step-by-step career roadmap generate karta hai.
     """
-    try:
-        client = _get_client()
-    except ValueError as e:
-        return {"error": str(e)}
-
     skills = [skill.name for skill in user_profile.skills.all()]
     skills_text = ", ".join(skills) if skills else "No skills added yet"
     latest_goal = user_profile.user_career_goals.last()
     goal_title = latest_goal.title if latest_goal else "General Career Growth"
 
-    prompt = f"""
-    You are an elite AI Career Coach. Based on the following user profile, generate a step-by-step learning roadmap to help them achieve their goal.
-    
-    Current User Profile:
-    - Experience Level: {user_profile.experience}
-    - Known Skills: {skills_text}
-    - Target Goal: {goal_title}
-    
-    Output strictly in the following JSON format without any markdown wrappers:
-    {{
-        "roadmap": [
-            {{
-                "step": 1,
-                "title": "Learn the Basics",
-                "description": "Start with learning fundamental concepts.",
-                "estimated_time": "2 weeks",
-                "resources": ["Course link 1", "Book name"]
-            }}
-        ]
-    }}
-    """
-    
+    system_instruction = (
+        "You are an elite AI Career Coach. Your job is to generate structured, "
+        "actionable career roadmaps. Always respond with pure valid JSON only — "
+        "no markdown, no explanation, no extra text."
+    )
+
+    prompt = f"""Based on the following user profile, generate a step-by-step learning roadmap to help them achieve their goal.
+
+Current User Profile:
+- Experience Level: {user_profile.experience}
+- Known Skills: {skills_text}
+- Target Goal: {goal_title}
+
+Return ONLY this exact JSON format (no markdown wrappers):
+{{
+    "roadmap": [
+        {{
+            "step": 1,
+            "title": "Learn the Basics",
+            "description": "Start with learning fundamental concepts.",
+            "estimated_time": "2 weeks",
+            "resources": ["Course link 1", "Book name"]
+        }}
+    ]
+}}
+Generate 6-8 steps minimum."""
+
     try:
-        response = client.models.generate_content(
-            model='gemini-3.6-flash',
-            contents=prompt,
-        )
-        text = response.text.strip()
-        if text.startswith('```json'):
-            text = text[7:]
-        elif text.startswith('```'):
-            text = text[3:]
-        if text.endswith('```'):
-            text = text[:-3]
-        return json.loads(text.strip())
+        result = call_groq_json(prompt, system_instruction=system_instruction)
+        return result
     except Exception as e:
-        print("AI Error:", str(e))
+        print("Roadmap Error:", str(e))
         return {"error": "Failed to generate roadmap. Please try again."}
 
 
+# ─── Career Coach Chat ─────────────────────────────────────────────────────────
+
 def interact_with_career_coach(user_profile, new_message):
     """
-    Ye function user ki profile, chat history fetch karega aur Gemini se chat continue karega.
+    User ki profile aur chat history ke saath AI career coach se baat karta hai.
     """
     from .models import ChatMessage
-
-    try:
-        client = _get_client()
-    except ValueError as e:
-        return {"error": str(e)}
 
     # Database se purani chat history
     chat_history_qs = ChatMessage.objects.filter(user_profile=user_profile).order_by('timestamp')
 
-    # Gemini ke format mein convert karo
+    # Groq format mein convert karo
     formatted_history = []
     for msg in chat_history_qs:
-        role = 'user' if msg.sender == 'user' else 'model'
-        formatted_history.append(
-            types.Content(role=role, parts=[types.Part(text=msg.message)])
-        )
+        role = 'user' if msg.sender == 'user' else 'assistant'
+        formatted_history.append({"role": role, "content": msg.message})
 
-    # User Profile ke hisab se system instruction
+    # Naya message add karo
+    formatted_history.append({"role": "user", "content": new_message})
+
+    # System instruction
     skills = [skill.name for skill in user_profile.skills.all()]
     skills_text = ", ".join(skills) if skills else "No skills added yet"
     latest_goal = user_profile.user_career_goals.last()
     goal_title = latest_goal.title if latest_goal else "General Career Growth"
     goal_desc = latest_goal.description if latest_goal else ""
 
-    system_instruction = f"""
-    You are an elite AI Career Coach named "CareerMind AI Coach". 
-    Your goal is to guide the user on their career path, answer career-related questions, and help them achieve their goals.
-    
-    User Profile Context:
-    - Experience Level: {user_profile.experience}
-    - Known Skills: {skills_text}
-    - Target Career Goal: {goal_title} ({goal_desc})
-    
-    Give professional, practical, and highly motivating answers. Keep your answers brief, clean, and conversational. Do NOT use markdown code blocks for normal chat responses.
-    """
+    system_instruction = f"""You are an elite AI Career Coach named "CareerMind AI Coach". 
+Your goal is to guide the user on their career path, answer career-related questions, and help them achieve their goals.
+
+User Profile Context:
+- Experience Level: {user_profile.experience}
+- Known Skills: {skills_text}
+- Target Career Goal: {goal_title} ({goal_desc})
+
+Give professional, practical, and highly motivating answers. Keep your answers brief, clean, and conversational. Do NOT use markdown code blocks for normal chat responses."""
 
     try:
-        # Add new user message to history
-        formatted_history.append(
-            types.Content(role='user', parts=[types.Part(text=new_message)])
+        ai_response_text = call_groq_with_history(
+            formatted_history,
+            system_instruction=system_instruction,
+            max_tokens=1024,
+            temperature=0.8,
         )
-
-        response = client.models.generate_content(
-            model='gemini-3.6-flash',
-            contents=formatted_history,
-            config=types.GenerateContentConfig(
-                system_instruction=system_instruction,
-            )
-        )
-        ai_response_text = response.text.strip()
 
         # Save both messages to DB
         ChatMessage.objects.create(
@@ -144,30 +117,31 @@ def interact_with_career_coach(user_profile, new_message):
         return {"error": f"AI Coach error: {str(e)}"}
 
 
+# ─── Career DNA Analysis ───────────────────────────────────────────────────────
+
 def analyze_career_dna(user_profile):
     """
-    User ki profile dekh kar AI se complete career DNA analysis karta hai.
+    User ki profile dekh kar complete career DNA analysis karta hai.
     """
-    try:
-        client = _get_client()
-    except ValueError as e:
-        return {"error": str(e)}
-
     skills = [skill.name for skill in user_profile.skills.all()]
     skills_text = ", ".join(skills) if skills else "No skills added yet"
     experience = user_profile.experience or "Fresher"
     latest_goal = user_profile.user_career_goals.last()
     goal_title = latest_goal.title if latest_goal else "General Software Development"
 
-    prompt = f"""
-You are an AI Career Analyst. Analyze the following student profile and return a detailed career DNA analysis.
+    system_instruction = (
+        "You are an AI Career Analyst. You analyze student profiles and return structured JSON. "
+        "Always respond with pure valid JSON only — no markdown, no explanation, no extra text."
+    )
+
+    prompt = f"""Analyze the following student profile and return a detailed career DNA analysis.
 
 Student Profile:
 - Experience: {experience}
 - Skills: {skills_text}
 - Target Goal: {goal_title}
 
-Return ONLY valid JSON (no markdown, no explanation) in this exact format:
+Return ONLY valid JSON in this exact format:
 {{
     "radar_data": [
         {{"subject": "Backend", "score": 8}},
@@ -187,45 +161,35 @@ Return ONLY valid JSON (no markdown, no explanation) in this exact format:
     "growth_areas": ["Docker", "System Design", "React"],
     "readiness_score": 72,
     "ai_summary": "2-3 line analysis of the student career potential and next steps."
-}}
-"""
+}}"""
 
     try:
-        response = client.models.generate_content(
-            model='gemini-3.6-flash',
-            contents=prompt,
-        )
-        text = response.text.strip()
-        if text.startswith('```json'):
-            text = text[7:]
-        elif text.startswith('```'):
-            text = text[3:]
-        if text.endswith('```'):
-            text = text[:-3]
-        return json.loads(text.strip())
+        result = call_groq_json(prompt, system_instruction=system_instruction)
+        return result
     except Exception as e:
         print("Career DNA Error:", str(e))
         return {"error": f"Failed to analyze career DNA: {str(e)}"}
 
 
+# ─── Skill Gap Analysis ────────────────────────────────────────────────────────
+
 def analyze_skill_gaps(user_profile, target_role):
     """
     User ki skills aur target role ke beech ka gap calculate karta hai.
     """
-    try:
-        client = _get_client()
-    except ValueError as e:
-        return {"error": str(e)}
-
     skills = [skill.name for skill in user_profile.skills.all()]
     skills_text = ", ".join(skills) if skills else "None"
 
-    prompt = f"""
-You are a Career Skills Analyst. Compare this student's skills against the requirements for the role: "{target_role}".
+    system_instruction = (
+        "You are a Career Skills Analyst. Compare student skills against job role requirements "
+        "and return structured JSON analysis. Always respond with pure valid JSON only."
+    )
+
+    prompt = f"""Compare this student's skills against the requirements for the role: "{target_role}".
 
 Student's current skills: {skills_text}
 
-Return ONLY valid JSON (no markdown, no explanation) in this exact format:
+Return ONLY valid JSON in this exact format:
 {{
     "target_role": "{target_role}",
     "overall_gap_score": 65,
@@ -244,22 +208,11 @@ Return ONLY valid JSON (no markdown, no explanation) in this exact format:
 }}
 
 Priority rules: gap >= 5 → "high", gap 3 or 4 → "medium", gap <= 2 → "low"
-Return exactly 6 to 8 skills. overall_gap_score is 0-100 (higher = more ready).
-"""
+Return exactly 6 to 8 skills. overall_gap_score is 0-100 (higher = more ready)."""
 
     try:
-        response = client.models.generate_content(
-            model='gemini-3.6-flash',
-            contents=prompt,
-        )
-        text = response.text.strip()
-        if text.startswith('```json'):
-            text = text[7:]
-        elif text.startswith('```'):
-            text = text[3:]
-        if text.endswith('```'):
-            text = text[:-3]
-        return json.loads(text.strip())
+        result = call_groq_json(prompt, system_instruction=system_instruction)
+        return result
     except Exception as e:
         print("Skill Gap Error:", str(e))
         return {"error": f"Failed to analyze skill gaps: {str(e)}"}

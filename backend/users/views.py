@@ -696,12 +696,11 @@ def analyze_github(request):
             key=lambda x: -x['percentage']
         )[:6]
         
-        # Gemini AI analysis of GitHub strength
+        # Groq AI analysis of GitHub strength
         try:
-            from .interview_service import get_gemini_model
-            model = get_gemini_model()
+            from .groq_client import call_groq_json
             skill_names = [s.name for s in profile.skills.all()]
-            prompt = f"""A software developer named {username} has these GitHub stats:
+            github_prompt = f"""A software developer named {username} has these GitHub stats:
 - Public repos: {user_data.get('public_repos', 0)}
 - Followers: {user_data.get('followers', 0)}
 - Total stars: {total_stars}
@@ -711,21 +710,21 @@ def analyze_github(request):
 
 Analyze their GitHub profile and return ONLY valid JSON:
 {{
-  "strength_score": <number 0-100>,
-  "consistency": <number 0-100>,
-  "collaboration": <number 0-100>,
-  "code_quality": <number 0-100>,
-  "documentation": <number 0-100>,
-  "impact": <number 0-100>,
-  "ai_summary": "<2-3 sentence AI insight about their GitHub profile and career impact>",
-  "resume_consistency": <number 0-100>,
-  "consistency_points": ["<point 1>", "<point 2>", "<point 3>"]
+  "strength_score": 72,
+  "consistency": 65,
+  "collaboration": 55,
+  "code_quality": 70,
+  "documentation": 50,
+  "impact": 60,
+  "ai_summary": "2-3 sentence AI insight about their GitHub profile and career impact.",
+  "resume_consistency": 72,
+  "consistency_points": ["point 1", "point 2", "point 3"]
 }}"""
-            ai_resp = model.generate_content(prompt)
-            ai_text = ai_resp.text.strip()
-            if '```' in ai_text:
-                ai_text = ai_text.split('```')[1].replace('json','').strip()
-            ai_analysis = json.loads(ai_text)
+            ai_analysis = call_groq_json(
+                github_prompt,
+                system_instruction="You are an expert developer profile analyzer. Return only valid JSON.",
+                temperature=0.5,
+            )
         except Exception as ai_err:
             print('GitHub Gemini error:', ai_err)
             ai_analysis = {
@@ -818,17 +817,16 @@ def upload_resume(request):
         # Limit text for Gemini (first 3000 chars is plenty)
         resume_text_trimmed = resume_text[:3000]
         
-        # Gemini analysis
+        # Groq AI analysis of resume
         try:
-            from .interview_service import get_gemini_model
-            model = get_gemini_model()
+            from .groq_client import call_groq_json
             profile = request.user.profile
             skill_names = [s.name for s in profile.skills.all()]
             github_langs = []
             if profile.github_data and 'languages' in profile.github_data:
                 github_langs = [l['name'] for l in profile.github_data['languages']]
-            
-            prompt = f"""Analyze this resume text and return ONLY valid JSON (no markdown, no backticks):
+
+            resume_prompt = f"""Analyze this resume text and return ONLY valid JSON (no markdown, no backticks):
 
 RESUME TEXT:
 {resume_text_trimmed}
@@ -838,35 +836,29 @@ User's GitHub languages: {github_langs}
 
 Return this exact JSON structure:
 {{
-  "score": <overall score 0-100>,
-  "ats": <ATS readiness 0-100>,
-  "skill_relevance": <skill relevance to market 0-100>,
-  "project_strength": <project section quality 0-100>,
-  "impact_statements": <use of quantified results 0-100>,
-  "role_alignment": <alignment to a senior dev role 0-100>,
-  "evidence_consistency": <resume claims vs github evidence 0-100>,
-  "skills_found": ["<skill1>", "<skill2>"],
-  "ai_tips": ["<tip1>", "<tip2>", "<tip3>", "<tip4>"],
+  "score": 72,
+  "ats": 68,
+  "skill_relevance": 70,
+  "project_strength": 65,
+  "impact_statements": 55,
+  "role_alignment": 68,
+  "evidence_consistency": 70,
+  "skills_found": ["Python", "Django"],
+  "ai_tips": ["tip1", "tip2", "tip3", "tip4"],
   "consistency_points": [
-    {{"text": "<observation 1>", "ok": true}},
-    {{"text": "<observation 2>", "ok": true}},
-    {{"text": "<observation 3>", "ok": false}}
+    {{"text": "Technical skills section present", "ok": true}},
+    {{"text": "Project experience documented", "ok": true}},
+    {{"text": "Quantified achievements can be improved", "ok": false}}
   ],
-  "summary": "<2-3 sentence overall assessment>"
+  "summary": "2-3 sentence overall assessment of the resume."
 }}"""
-            ai_resp = model.generate_content(prompt)
-            ai_text = ai_resp.text.strip()
-            # Remove markdown code fences if present
-            if '```' in ai_text:
-                parts = ai_text.split('```')
-                for part in parts:
-                    part = part.replace('json', '').strip()
-                    if part.startswith('{'):
-                        ai_text = part
-                        break
-            analysis = json.loads(ai_text)
+            analysis = call_groq_json(
+                resume_prompt,
+                system_instruction="You are an expert resume analyst and ATS specialist. Return only valid JSON.",
+                temperature=0.4,
+            )
         except Exception as ai_err:
-            print('Resume Gemini error:', ai_err)
+            print('Resume Groq error:', ai_err)
             # Fallback analysis
             analysis = {
                 "score": 68, "ats": 72, "skill_relevance": 70, "project_strength": 65,
