@@ -73,7 +73,7 @@ const CodingBattle = () => {
 
     const apiUrl = getApiUrl();
     
-    const syncRoom = async () => {
+  const syncRoom = async () => {
       try {
         const response = await fetch(`${apiUrl}battles/sync/${roomCode}/`);
         if (!response.ok) return;
@@ -105,25 +105,28 @@ const CodingBattle = () => {
             }
           }
           setBattleState('playing');
-        } else if (data.status === 'finished' && battleState === 'playing') {
+        } else if (data.status === 'finished' && (battleState === 'playing' || isWaitingForOpponent)) {
+          setIsWaitingForOpponent(false);
           setBattleState('analyzing');
           setMatchStats({
             host_player: data.host_player,
+            host_player_id: data.host_player_id,
             join_player: data.join_player,
+            join_player_id: data.join_player_id,
             host_score: data.host_score, host_time: data.host_time, 
             join_score: data.join_score, join_time: data.join_time
           });
           setTimeout(() => {
             setWinner(data.winner);
             setBattleState('finished');
-          }, 3000);
+          }, 1500);
         }
       } catch (error) {
         console.error('Error syncing room:', error);
       }
     };
 
-    pollInterval.current = setInterval(syncRoom, 2000);
+    pollInterval.current = setInterval(syncRoom, 1500);
     syncRoom();
 
     return () => {
@@ -132,7 +135,7 @@ const CodingBattle = () => {
         pollInterval.current = null;
       }
     };
-  }, [roomCode, battleState]);
+  }, [roomCode, battleState, isWaitingForOpponent]);
 
   useEffect(() => {
     let timer;
@@ -159,6 +162,7 @@ const CodingBattle = () => {
         body: JSON.stringify({ 
           room_code: roomCode, 
           player: me.name,
+          playerId: playerId,
           score: finalScore,
           time_taken: timeTaken
         })
@@ -459,7 +463,10 @@ const CodingBattle = () => {
     </motion.div>
   );
 
-  const isWinner = winner === me.name;
+  const isWinner = winner === me.name || (matchStats && (
+    (matchStats.host_player_id === playerId && winner === matchStats.host_player) ||
+    (matchStats.join_player_id === playerId && winner === matchStats.join_player)
+  ));
   const isDraw = winner === 'Draw';
   const questionsList = aiQuestions || getLocalQuizQuestions();
 
