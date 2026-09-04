@@ -7,6 +7,8 @@ import {
   FolderGit2, BookOpen, Sun, Moon, Shield, Award, Play, Terminal, Swords
 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
+import Tilt3DCard from '../components/Tilt3DCard';
+import BrandLogo, { WordMark } from '../components/BrandLogo';
 
 // Animated Counter Hook
 function useCounter(target, duration = 1800, start = false) {
@@ -79,13 +81,8 @@ const Landing = () => {
       <header className="sticky top-0 z-50 border-b backdrop-blur-xl transition-colors"
         style={{ background: 'var(--header-bg)', borderColor: 'var(--bg-card-border)' }}>
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-500 via-violet-600 to-teal-400 flex items-center justify-center glow-indigo shadow-lg">
-              <Sparkles size={16} className="text-white" />
-            </div>
-            <span className="font-bold text-base tracking-tight" style={{ fontFamily: 'Space Grotesk, sans-serif' }}>
-              SkillForge <span className="gradient-text">AI</span>
-            </span>
+          <Link to="/" className="flex items-center">
+            <BrandLogo iconSize={34} wordSize="md" animated={true} />
           </Link>
 
           <nav className="hidden md:flex items-center gap-6 text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>
@@ -109,40 +106,253 @@ const Landing = () => {
               style={{ color: 'var(--text-secondary)' }}>
               Sign In
             </Link>
-            <Link to="/register" className="text-xs font-semibold px-4 py-2 bg-gradient-to-r from-indigo-500 to-violet-600 rounded-xl text-white shadow-md hover:from-indigo-600 hover:to-violet-700 transition-all hover:scale-105">
-              Get Started Free
-            </Link>
+            <motion.div whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}>
+              <Link
+                to="/register"
+                className="text-xs font-bold px-4 py-2 rounded-xl text-white transition-all"
+                style={{ background: 'linear-gradient(135deg, #6366f1, #a855f7, #ec4899)', boxShadow: '0 2px 12px rgba(99,102,241,0.35)' }}
+              >
+                Get Started Free
+              </Link>
+            </motion.div>
           </div>
         </div>
       </header>
 
-      {/* HERO SECTION */}
-      <section className="relative pt-16 pb-20 px-6 max-w-7xl mx-auto z-10 text-center">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="max-w-4xl mx-auto">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border mb-6 bg-indigo-500/10 border-indigo-500/20">
-            <Sparkles size={13} className="text-indigo-400 animate-pulse" />
-            <span className="text-xs font-semibold text-indigo-400 uppercase tracking-wider">Next-Gen AI Career Operating System</span>
-          </div>
+      {/* HERO SECTION — 3D Layout */}
+      <section className="relative pt-14 pb-20 px-6 max-w-7xl mx-auto z-10">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
 
-          <h1 className="text-4xl sm:text-6xl font-extrabold tracking-tight mb-6 leading-tight" style={{ fontFamily: 'Space Grotesk, sans-serif' }}>
-            Forge Your Engineering Career with <span className="gradient-text">Autonomous AI</span>
-          </h1>
+          {/* Left: Text */}
+          <motion.div
+            initial={{ opacity: 0, x: -30 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.7 }}
+          >
+            {/* Pill badge with shimmer border */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.85 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.45 }}
+              className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full mb-7 shimmer-border"
+            >
+              <motion.div
+                animate={{ rotate: [0, 20, -20, 0] }}
+                transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+              >
+                <Sparkles size={13} className="text-indigo-400" />
+              </motion.div>
+              <span className="text-xs font-bold text-indigo-400 uppercase tracking-widest">Next-Gen AI Career OS</span>
+            </motion.div>
 
-          <p className="text-base sm:text-lg max-w-2xl mx-auto mb-8 leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
-            SkillForge AI analyzes your code evidence, maps your skill gaps, scores your resume for ATS, and conducts real-time AI mock interviews — all in one unified platform.
-          </p>
+            <h1 className="text-5xl sm:text-6xl font-extrabold tracking-tight mb-6 leading-[1.08]" style={{ fontFamily: 'Space Grotesk, sans-serif' }}>
+              Forge Your
+              <br />
+              <span className="gradient-text text-neon-indigo">Engineering</span>
+              <br />
+              Career with AI
+            </h1>
 
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <button onClick={() => navigate('/register')} id="hero-get-started-btn"
-              className="w-full sm:w-auto px-8 py-3.5 bg-gradient-to-r from-indigo-500 via-violet-600 to-teal-500 rounded-2xl text-sm font-bold text-white shadow-xl hover:scale-105 transition-all flex items-center justify-center gap-2">
-              Launch Your AI Career DNA <ArrowRight size={16} />
-            </button>
-            <a href="#showcase" className="w-full sm:w-auto px-6 py-3.5 border rounded-2xl text-sm font-semibold transition-all hover:bg-white/5 flex items-center justify-center gap-2"
-              style={{ borderColor: 'var(--bg-card-border)', color: 'var(--text-primary)' }}>
-              <Play size={14} className="text-indigo-400" /> Explore Features Demo
-            </a>
-          </div>
-        </motion.div>
+            <p className="text-base max-w-lg mb-10 leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+              Analyze code evidence, map skill gaps, score resumes for ATS, and run real-time AI mock interviews — all in one unified platform.
+            </p>
+
+            {/* CTA buttons */}
+            <div className="flex flex-col sm:flex-row gap-3 mb-10">
+              <motion.button
+                onClick={() => navigate('/register')}
+                id="hero-get-started-btn"
+                whileHover={{ scale: 1.04, boxShadow: '0 0 36px rgba(99,102,241,0.55), 0 0 80px rgba(99,102,241,0.2)' }}
+                whileTap={{ scale: 0.96 }}
+                className="relative overflow-hidden px-8 py-4 rounded-2xl text-sm font-bold text-white flex items-center justify-center gap-2"
+                style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6, #14b8a6)' }}
+              >
+                {/* Scan line effect on button */}
+                <span className="scan-line" />
+                Launch Your AI Career DNA <ArrowRight size={16} />
+              </motion.button>
+
+              <motion.a
+                href="#showcase"
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                className="px-7 py-4 border rounded-2xl text-sm font-semibold transition-all flex items-center justify-center gap-2 glass-deep"
+                style={{ color: 'var(--text-primary)', borderColor: 'rgba(99,102,241,0.25)' }}
+              >
+                <Play size={14} className="text-indigo-400" /> Explore Demo
+              </motion.a>
+            </div>
+
+            {/* Feature badges */}
+            <div className="flex flex-wrap gap-3">
+              {[
+                { emoji: '🧬', text: 'Career DNA', color: '#6366f1' },
+                { emoji: '⚡', text: 'Skill Gaps', color: '#8b5cf6' },
+                { emoji: '📄', text: 'ATS Scorer', color: '#ec4899' },
+                { emoji: '🎤', text: 'Mock Interviews', color: '#f97316' },
+              ].map((badge, i) => (
+                <motion.div
+                  key={badge.text}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.5 + i * 0.08 }}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-medium"
+                  style={{ background: `${badge.color}10`, borderColor: `${badge.color}30`, color: badge.color }}
+                >
+                  <span>{badge.emoji}</span>
+                  <span>{badge.text}</span>
+                </motion.div>
+              ))}
+            </div>
+          </motion.div>
+
+          {/* Right: 3D floating dashboard preview cards */}
+          <motion.div
+            initial={{ opacity: 0, x: 30, rotateY: 15 }}
+            animate={{ opacity: 1, x: 0, rotateY: 0 }}
+            transition={{ duration: 0.8, delay: 0.2 }}
+            className="relative hidden lg:block"
+            style={{ perspective: '1200px' }}
+          >
+            {/* Main hero card — 3D tilt */}
+            <Tilt3DCard
+              className="rounded-3xl p-6 depth-shadow-colored shimmer-border"
+              style={{ background: 'rgba(17,17,28,0.85)', backdropFilter: 'blur(20px)' }}
+              maxTilt={10}
+            >
+              {/* Header row */}
+              <div className="flex items-center justify-between mb-5">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-500 via-violet-600 to-teal-400 flex items-center justify-center">
+                    <Sparkles size={14} className="text-white" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold" style={{ color: 'var(--text-primary)' }}>Career Readiness</p>
+                    <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>AI Analysis Complete</p>
+                  </div>
+                </div>
+                <motion.div
+                  animate={{ scale: [1, 1.15, 1], opacity: [0.7, 1, 0.7] }}
+                  transition={{ duration: 2.5, repeat: Infinity }}
+                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30"
+                >
+                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                  <span className="text-[10px] font-semibold text-emerald-400">Live</span>
+                </motion.div>
+              </div>
+
+              {/* Score ring + label */}
+              <div className="flex items-center gap-6 mb-5">
+                <div className="relative w-20 h-20 flex-shrink-0">
+                  <svg width="80" height="80" className="-rotate-90">
+                    <circle cx="40" cy="40" r="32" fill="none" stroke="rgba(99,102,241,0.12)" strokeWidth="6" />
+                    <motion.circle
+                      cx="40" cy="40" r="32" fill="none"
+                      stroke="url(#heroGrad)" strokeWidth="6"
+                      strokeDasharray={201}
+                      initial={{ strokeDashoffset: 201 }}
+                      animate={{ strokeDashoffset: 201 * 0.18 }}
+                      transition={{ duration: 2, ease: 'easeOut', delay: 0.5 }}
+                      strokeLinecap="round"
+                      style={{ filter: 'drop-shadow(0 0 6px rgba(99,102,241,0.6))' }}
+                    />
+                    <defs>
+                      <linearGradient id="heroGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                        <stop offset="0%" stopColor="#6366f1" />
+                        <stop offset="100%" stopColor="#14b8a6" />
+                      </linearGradient>
+                    </defs>
+                  </svg>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center">
+                    <span className="text-lg font-extrabold" style={{ color: 'var(--text-primary)' }}>82</span>
+                    <span className="text-[9px]" style={{ color: 'var(--text-muted)' }}>/ 100</span>
+                  </div>
+                </div>
+                <div className="flex-1 space-y-2">
+                  {[
+                    { label: 'Python / Django', val: 85, color: '#6366f1' },
+                    { label: 'Docker & Cloud', val: 38, color: '#f97316' },
+                    { label: 'System Design', val: 55, color: '#8b5cf6' },
+                  ].map((s, i) => (
+                    <div key={s.label}>
+                      <div className="flex justify-between text-[10px] mb-0.5">
+                        <span style={{ color: 'var(--text-secondary)' }}>{s.label}</span>
+                        <span style={{ color: s.color }}>{s.val}%</span>
+                      </div>
+                      <div className="h-1 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.06)' }}>
+                        <motion.div
+                          initial={{ width: 0 }}
+                          animate={{ width: `${s.val}%` }}
+                          transition={{ duration: 1.2, delay: 0.6 + i * 0.15, ease: 'easeOut' }}
+                          className="h-full rounded-full"
+                          style={{ background: `linear-gradient(90deg, ${s.color}, ${s.color}99)`, boxShadow: `0 0 6px ${s.color}60` }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* AI next move chip */}
+              <div className="flex items-center gap-2.5 p-3 rounded-xl holo-surface">
+                <motion.div
+                  animate={{ rotate: [0, 15, -15, 0] }}
+                  transition={{ duration: 3, repeat: Infinity }}
+                >
+                  <Sparkles size={14} className="text-indigo-400" />
+                </motion.div>
+                <p className="text-[11px] font-medium" style={{ color: 'var(--text-primary)' }}>
+                  Next move: <span className="text-indigo-400 font-bold">Learn Docker</span> — #1 gap for Backend roles
+                </p>
+              </div>
+            </Tilt3DCard>
+
+            {/* Floating mini-cards — positioned absolutely */}
+            {/* Top-right: XP badge */}
+            <motion.div
+              initial={{ opacity: 0, y: -20, scale: 0.8 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              transition={{ delay: 0.9, type: 'spring' }}
+              className="absolute -top-5 -right-6 px-4 py-2.5 rounded-2xl glass-deep border flex items-center gap-2 depth-shadow"
+              style={{ borderColor: 'rgba(99,102,241,0.3)' }}
+            >
+              <motion.span
+                animate={{ y: [0, -3, 0] }}
+                transition={{ duration: 2, repeat: Infinity }}
+                className="text-lg"
+              >✨</motion.span>
+              <div>
+                <p className="text-[9px] font-semibold text-indigo-400 uppercase tracking-widest">Career XP</p>
+                <p className="text-sm font-extrabold" style={{ color: 'var(--text-primary)' }}>2,840</p>
+              </div>
+            </motion.div>
+
+            {/* Bottom-left: Streak badge */}
+            <motion.div
+              initial={{ opacity: 0, y: 20, scale: 0.8 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              transition={{ delay: 1.1, type: 'spring' }}
+              className="absolute -bottom-4 -left-6 px-4 py-2.5 rounded-2xl glass-deep border flex items-center gap-2 depth-shadow"
+              style={{ borderColor: 'rgba(245,158,11,0.3)' }}
+            >
+              <motion.span
+                animate={{ scale: [1, 1.2, 1], rotate: [0, 5, -5, 0] }}
+                transition={{ duration: 1.5, repeat: Infinity }}
+                className="text-lg"
+              >🔥</motion.span>
+              <div>
+                <p className="text-[9px] font-semibold text-amber-400 uppercase tracking-widest">Streak</p>
+                <p className="text-sm font-extrabold" style={{ color: 'var(--text-primary)' }}>14 Days</p>
+              </div>
+            </motion.div>
+
+            {/* Orbiting ring decoration */}
+            <div className="absolute inset-0 -z-10 flex items-center justify-center pointer-events-none">
+              <div className="w-[110%] h-[110%] rounded-full border border-indigo-500/8 spin-slow" />
+              <div className="absolute w-[90%] h-[90%] rounded-full border border-violet-500/6 spin-reverse" />
+            </div>
+          </motion.div>
+        </div>
       </section>
 
       {/* INTERACTIVE FEATURE SHOWCASE */}
@@ -467,7 +677,7 @@ const Landing = () => {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
           {[
             { icon: Brain, title: 'Career DNA Analysis', desc: 'AI-driven multidimensional evaluation of your engineering strengths and target job roles.', color: '#6366f1' },
             { icon: Zap, title: 'Skill Gap Diagnostics', desc: 'Compare known skills against real job market requirements to prioritize what to learn next.', color: '#8b5cf6' },
@@ -481,15 +691,32 @@ const Landing = () => {
           ].map((f, i) => {
             const Icon = f.icon;
             return (
-              <motion.div key={f.title} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
-                className="p-5 rounded-2xl border transition-all duration-300 hover:-translate-y-1"
-                style={{ background: 'var(--bg-card)', borderColor: 'var(--bg-card-border)', boxShadow: 'var(--shadow-card)' }}>
-                <div className="w-9 h-9 rounded-xl flex items-center justify-center mb-3"
-                  style={{ background: `${f.color}15`, border: `1px solid ${f.color}30` }}>
-                  <Icon size={18} style={{ color: f.color }} />
-                </div>
-                <h3 className="text-sm font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>{f.title}</h3>
-                <p className="text-xs leading-relaxed" style={{ color: 'var(--text-muted)' }}>{f.desc}</p>
+              <motion.div
+                key={f.title}
+                initial={{ opacity: 0, y: 24 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.06, duration: 0.5 }}
+                viewport={{ once: true }}
+              >
+                <Tilt3DCard
+                  className="p-5 rounded-2xl border h-full"
+                  style={{ background: 'var(--bg-card)', borderColor: 'var(--bg-card-border)', boxShadow: 'var(--shadow-card)' }}
+                  maxTilt={9}
+                >
+                  {/* Top gradient line */}
+                  <div className="absolute top-0 left-0 right-0 h-0.5 rounded-t-2xl"
+                    style={{ background: `linear-gradient(90deg, transparent, ${f.color}50, transparent)` }} />
+                  <motion.div
+                    className="w-10 h-10 rounded-xl flex items-center justify-center mb-4"
+                    style={{ background: `${f.color}15`, border: `1px solid ${f.color}30` }}
+                    whileHover={{ scale: 1.1, rotate: [0, -5, 5, 0] }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <Icon size={18} style={{ color: f.color, filter: `drop-shadow(0 0 6px ${f.color}80)` }} />
+                  </motion.div>
+                  <h3 className="text-sm font-semibold mb-1.5" style={{ color: 'var(--text-primary)' }}>{f.title}</h3>
+                  <p className="text-xs leading-relaxed" style={{ color: 'var(--text-muted)' }}>{f.desc}</p>
+                </Tilt3DCard>
               </motion.div>
             );
           })}
@@ -498,14 +725,24 @@ const Landing = () => {
 
       {/* LIVE AI COACH PREVIEW */}
       <section className="py-16 px-6 max-w-4xl mx-auto z-10">
-        <div className="rounded-3xl p-6 sm:p-8 border relative overflow-hidden"
-          style={{ background: 'var(--bg-card)', borderColor: 'var(--bg-card-border)' }}>
+        <Tilt3DCard
+          className="rounded-3xl p-6 sm:p-8 relative overflow-hidden shimmer-border"
+          style={{ background: 'rgba(17,17,28,0.7)', backdropFilter: 'blur(20px)' }}
+          maxTilt={5}
+          glare={true}
+        >
+          {/* Scan line overlay */}
+          <span className="scan-line" />
           <div className="flex items-center gap-3 mb-4">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white">
+            <motion.div
+              className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white"
+              animate={{ boxShadow: ['0 0 8px rgba(99,102,241,0.4)', '0 0 20px rgba(99,102,241,0.7)', '0 0 8px rgba(99,102,241,0.4)'] }}
+              transition={{ duration: 2.5, repeat: Infinity }}
+            >
               <Terminal size={18} />
-            </div>
+            </motion.div>
             <div>
-              <h3 className="text-sm font-bold">Try SkillForge AI Assistant Live</h3>
+              <h3 className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>Try SkillForge AI Assistant Live</h3>
               <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>Test a career question right now</p>
             </div>
           </div>
@@ -536,46 +773,77 @@ const Landing = () => {
               Send
             </button>
           </form>
-        </div>
+        </Tilt3DCard>
       </section>
 
       {/* PROOF STATS */}
-      <section ref={statsRef} className="py-12 border-y z-10" style={{ background: 'var(--bg-secondary)', borderColor: 'var(--bg-card-border)' }}>
+      <section ref={statsRef} className="py-14 border-y z-10" style={{ background: 'var(--bg-secondary)', borderColor: 'var(--bg-card-border)' }}>
         <div className="max-w-6xl mx-auto px-6 grid grid-cols-1 sm:grid-cols-3 gap-8 text-center">
-          <div>
-            <p className="text-3xl font-extrabold gradient-text">{stat1}%</p>
-            <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>Resume ATS Pass Rate</p>
-          </div>
-          <div>
-            <p className="text-3xl font-extrabold gradient-text-blue">{stat2}%</p>
-            <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>Faster Skill Gap Closure</p>
-          </div>
-          <div>
-            <p className="text-3xl font-extrabold text-teal-400">{stat3}k+</p>
-            <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>AI Mock Interviews Conducted</p>
-          </div>
+          {[
+            { value: stat1, suffix: '%', label: 'Resume ATS Pass Rate', color: 'gradient-text' },
+            { value: stat2, suffix: '%', label: 'Faster Skill Gap Closure', color: 'gradient-text-blue' },
+            { value: stat3, suffix: 'k+', label: 'AI Mock Interviews Conducted', color: 'text-teal-400' },
+          ].map((stat, i) => (
+            <motion.div
+              key={stat.label}
+              initial={{ opacity: 0, y: 16 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.1 }}
+              viewport={{ once: true }}
+            >
+              <p className={`text-4xl font-extrabold ${stat.color}`}>{stat.value}{stat.suffix}</p>
+              <p className="text-xs mt-2 font-medium" style={{ color: 'var(--text-muted)' }}>{stat.label}</p>
+            </motion.div>
+          ))}
         </div>
       </section>
 
       {/* FINAL CTA */}
-      <section className="py-20 px-6 text-center z-10 relative">
-        <div className="max-w-3xl mx-auto">
-          <h2 className="text-3xl sm:text-5xl font-extrabold mb-4" style={{ fontFamily: 'Space Grotesk, sans-serif' }}>
-            Ready to Build Your Engineering Legacy?
-          </h2>
-          <p className="text-sm mb-8 max-w-xl mx-auto" style={{ color: 'var(--text-muted)' }}>
-            Join thousands of software engineers using SkillForge AI to analyze skills, optimize resumes, and master technical interviews.
-          </p>
-          <button onClick={() => navigate('/register')} id="cta-get-started-btn"
-            className="px-8 py-4 bg-gradient-to-r from-indigo-500 via-violet-600 to-teal-400 text-white rounded-2xl text-sm font-bold shadow-2xl hover:scale-105 transition-all">
-            Get Started Free — No Credit Card Required
-          </button>
+      <section className="py-24 px-6 text-center z-10 relative overflow-hidden">
+        {/* CTA background accent */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[300px] rounded-full bg-indigo-600/8 blur-[100px] pointer-events-none" />
+        <div className="max-w-3xl mx-auto relative z-10">
+          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border mb-6 bg-violet-500/10 border-violet-500/20">
+              <Sparkles size={12} className="text-violet-400" />
+              <span className="text-xs font-bold text-violet-400 uppercase tracking-widest">Free to Get Started</span>
+            </div>
+            <h2 className="text-3xl sm:text-5xl font-extrabold mb-5" style={{ fontFamily: 'Space Grotesk, sans-serif' }}>
+              Ready to Build Your
+              <br />
+              <span className="gradient-text">Engineering Legacy?</span>
+            </h2>
+            <p className="text-sm mb-8 max-w-xl mx-auto leading-relaxed" style={{ color: 'var(--text-muted)' }}>
+              Join thousands of software engineers using SkillForge AI to analyze skills, optimize resumes, and master technical interviews.
+            </p>
+            <motion.button
+              onClick={() => navigate('/register')}
+              id="cta-get-started-btn"
+              whileHover={{ scale: 1.04, boxShadow: '0 0 40px rgba(99,102,241,0.45)' }}
+              whileTap={{ scale: 0.97 }}
+              className="px-10 py-4 bg-gradient-to-r from-indigo-500 via-violet-600 to-teal-500 text-white rounded-2xl text-sm font-bold shadow-2xl transition-all"
+            >
+              Get Started Free — No Credit Card Required
+            </motion.button>
+            <p className="text-xs mt-4" style={{ color: 'var(--text-muted)' }}>
+              Trusted by developers at top companies worldwide
+            </p>
+          </motion.div>
         </div>
       </section>
 
       {/* FOOTER */}
-      <footer className="py-8 border-t text-center text-xs" style={{ borderColor: 'var(--bg-card-border)', color: 'var(--text-muted)' }}>
-        <p>© 2026 SkillForge AI. Next-Gen AI Career Operating System for Developers.</p>
+      <footer className="py-8 border-t text-center" style={{ borderColor: 'var(--bg-card-border)' }}>
+        <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+          © 2026 SkillForge AI — Next-Gen AI Career Operating System for Developers.
+        </p>
+        <div className="flex items-center justify-center gap-6 mt-3">
+          {['Privacy Policy', 'Terms of Service', 'Contact'].map(link => (
+            <a key={link} href="#" className="text-xs transition-colors hover:text-indigo-400" style={{ color: 'var(--text-muted)' }}>
+              {link}
+            </a>
+          ))}
+        </div>
       </footer>
     </div>
   );

@@ -4,93 +4,98 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   LayoutDashboard, Dna, Zap, Map, BookOpen, Briefcase,
   Mic, FolderGit2, GitBranch, FileText, User, Settings,
-  ChevronLeft, ChevronRight, HelpCircle, LogOut, Sparkles, X, Menu,
-  Sun, Moon, Swords
+  ChevronLeft, ChevronRight, LogOut, X, Menu, Sun, Moon, Swords
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
+import BrandLogo from '../BrandLogo';
 
+// Each nav item now carries a unique accent colour
 const navItems = [
-  { path: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-  { path: '/career-dna', icon: Dna, label: 'Career DNA' },
-  { path: '/skill-gaps', icon: Zap, label: 'Skill Gaps' },
-  { path: '/roadmap', icon: Map, label: 'Roadmap' },
-  { path: '/battle', icon: Swords, label: '1v1 Battle' },
-  { path: '/courses', icon: BookOpen, label: 'Courses' },
-  { path: '/jobs', icon: Briefcase, label: 'Jobs' },
-  { path: '/mock-interview', icon: Mic, label: 'Mock Interview' },
-  { path: '/projects', icon: FolderGit2, label: 'Projects' },
-  { path: '/github', icon: GitBranch, label: 'GitHub' },
-  { path: '/resume', icon: FileText, label: 'Resume' },
+  { path: '/dashboard',     icon: LayoutDashboard, label: 'Dashboard',     color: '#6366f1' },
+  { path: '/career-dna',    icon: Dna,             label: 'Career DNA',    color: '#a855f7' },
+  { path: '/skill-gaps',    icon: Zap,             label: 'Skill Gaps',    color: '#f59e0b' },
+  { path: '/roadmap',       icon: Map,             label: 'Roadmap',       color: '#3b82f6' },
+  { path: '/battle',        icon: Swords,          label: '1v1 Battle',    color: '#ef4444' },
+  { path: '/courses',       icon: BookOpen,        label: 'Courses',       color: '#10b981' },
+  { path: '/jobs',          icon: Briefcase,       label: 'Jobs',          color: '#14b8a6' },
+  { path: '/mock-interview',icon: Mic,             label: 'Mock Interview',color: '#f97316' },
+  { path: '/projects',      icon: FolderGit2,      label: 'Projects',      color: '#ec4899' },
+  { path: '/github',        icon: GitBranch,       label: 'GitHub',        color: '#e2a82e' },
+  { path: '/resume',        icon: FileText,        label: 'Resume',        color: '#8b5cf6' },
 ];
 
 const bottomItems = [
-  { path: '/profile', icon: User, label: 'Profile' },
-  { path: '/settings', icon: Settings, label: 'Settings' },
+  { path: '/profile',  icon: User,     label: 'Profile',  color: '#6366f1' },
+  { path: '/settings', icon: Settings, label: 'Settings', color: '#9898b0' },
 ];
 
-const Logo = ({ collapsed }) => (
-  <div className="flex items-center gap-2.5 overflow-hidden">
-    <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-500 via-violet-600 to-teal-400 flex items-center justify-center flex-shrink-0 glow-indigo shadow-lg">
-      <Sparkles size={16} className="text-white" />
-    </div>
-    <AnimatePresence>
-      {!collapsed && (
-        <motion.span
-          initial={{ opacity: 0, width: 0 }}
-          animate={{ opacity: 1, width: 'auto' }}
-          exit={{ opacity: 0, width: 0 }}
-          transition={{ duration: 0.2 }}
-          className="font-bold text-sm whitespace-nowrap overflow-hidden"
-          style={{ fontFamily: 'Space Grotesk, sans-serif', color: 'var(--text-primary)' }}
-        >
-          SkillForge <span className="gradient-text">AI</span>
-        </motion.span>
-      )}
-    </AnimatePresence>
-  </div>
-);
-
+/* ─── Nav Item ──────────────────────────────────────────────────────────────── */
 const NavItem = ({ item, collapsed }) => {
   const Icon = item.icon;
   return (
     <NavLink
       to={item.path}
       className={({ isActive }) =>
-        `group relative flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 ${
-          isActive
-            ? 'bg-indigo-500/15 border border-indigo-500/25'
-            : 'border border-transparent'
+        `group relative flex items-center gap-3 px-2.5 py-2.5 rounded-xl transition-all duration-200 ${
+          isActive ? 'border' : 'border border-transparent'
         }`
       }
-      style={({ isActive }) => ({
-        color: isActive ? 'var(--accent-indigo)' : 'var(--text-secondary)',
-      })}
+      style={({ isActive }) => isActive ? {
+        color: item.color,
+        background: `${item.color}12`,
+        borderColor: `${item.color}30`,
+      } : {
+        color: 'var(--text-secondary)',
+      }}
     >
       {({ isActive }) => (
         <>
-          <Icon size={18} className="flex-shrink-0 transition-colors" />
+          {/* Hover bg */}
+          {!isActive && (
+            <span
+              className="absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+              style={{ background: `${item.color}08` }}
+            />
+          )}
+
+          {/* Icon with coloured tint when active */}
+          <span
+            className="flex-shrink-0 relative z-10"
+            style={isActive ? {
+              filter: `drop-shadow(0 0 4px ${item.color}80)`,
+            } : {}}
+          >
+            <Icon size={17} style={{ color: isActive ? item.color : undefined }} />
+          </span>
+
           <AnimatePresence>
             {!collapsed && (
               <motion.span
                 initial={{ opacity: 0, width: 0 }}
                 animate={{ opacity: 1, width: 'auto' }}
                 exit={{ opacity: 0, width: 0 }}
-                transition={{ duration: 0.2 }}
-                className="text-sm font-medium whitespace-nowrap overflow-hidden"
+                transition={{ duration: 0.18 }}
+                className="text-sm font-medium whitespace-nowrap overflow-hidden flex-1 relative z-10"
               >
                 {item.label}
               </motion.span>
             )}
           </AnimatePresence>
-          {/* Active indicator */}
-          {isActive && (
-            <div className="absolute right-3 w-1.5 h-1.5 rounded-full bg-indigo-400" />
+
+          {/* Active colour dot */}
+          {isActive && !collapsed && (
+            <motion.span
+              layoutId="nav-active-dot"
+              className="w-1.5 h-1.5 rounded-full flex-shrink-0 relative z-10"
+              style={{ background: item.color, boxShadow: `0 0 6px ${item.color}` }}
+            />
           )}
-          {/* Tooltip for collapsed */}
+
+          {/* Collapsed tooltip */}
           {collapsed && (
             <div
-              className="absolute left-full ml-3 px-2 py-1 rounded-lg text-xs whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none z-50 transition-opacity shadow-xl border"
+              className="absolute left-full ml-3 px-2.5 py-1.5 rounded-lg text-xs whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none z-50 transition-opacity shadow-xl border"
               style={{ background: 'var(--bg-secondary)', borderColor: 'var(--bg-card-border)', color: 'var(--text-primary)' }}
             >
               {item.label}
@@ -102,92 +107,119 @@ const NavItem = ({ item, collapsed }) => {
   );
 };
 
-// Mobile bottom nav
-const MobileNav = () => {
-  const topItems = navItems.slice(0, 5);
-  return (
-    <div
-      className="fixed bottom-0 left-0 right-0 z-50 border-t md:hidden"
-      style={{ background: 'var(--header-bg)', borderColor: 'var(--sidebar-border)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)' }}
-    >
-      <div className="flex items-center justify-around px-2 py-2">
-        {topItems.map((item) => {
-          const Icon = item.icon;
-          return (
-            <NavLink
-              key={item.path}
-              to={item.path}
-              className={({ isActive }) =>
-                `flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all`
-              }
-              style={({ isActive }) => ({
-                color: isActive ? 'var(--accent-indigo)' : 'var(--text-muted)',
-              })}
-            >
-              <Icon size={20} />
-              <span className="text-[10px] font-medium">{item.label.split(' ')[0]}</span>
-            </NavLink>
-          );
-        })}
-        <NavLink
-          to="/profile"
-          className="flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all"
-          style={({ isActive }) => ({
-            color: isActive ? 'var(--accent-indigo)' : 'var(--text-muted)',
-          })}
-        >
-          <User size={20} />
-          <span className="text-[10px] font-medium">Profile</span>
-        </NavLink>
-      </div>
+/* ─── Mobile bottom nav ─────────────────────────────────────────────────────── */
+const MobileNav = () => (
+  <div
+    className="fixed bottom-0 left-0 right-0 z-50 border-t md:hidden"
+    style={{
+      background: 'var(--header-bg)',
+      borderColor: 'var(--sidebar-border)',
+      backdropFilter: 'blur(24px)',
+      WebkitBackdropFilter: 'blur(24px)',
+    }}
+  >
+    <div className="flex items-center justify-around px-2 py-2">
+      {navItems.slice(0, 5).map(item => {
+        const Icon = item.icon;
+        return (
+          <NavLink
+            key={item.path}
+            to={item.path}
+            className="flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all"
+            style={({ isActive }) => ({ color: isActive ? item.color : 'var(--text-muted)' })}
+          >
+            {({ isActive }) => (
+              <>
+                <span style={isActive ? { filter: `drop-shadow(0 0 4px ${item.color}80)` } : {}}>
+                  <Icon size={20} />
+                </span>
+                <span className="text-[10px] font-medium">{item.label.split(' ')[0]}</span>
+              </>
+            )}
+          </NavLink>
+        );
+      })}
+      <NavLink
+        to="/profile"
+        className="flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all"
+        style={({ isActive }) => ({ color: isActive ? '#6366f1' : 'var(--text-muted)' })}
+      >
+        <User size={20} />
+        <span className="text-[10px] font-medium">Profile</span>
+      </NavLink>
     </div>
-  );
-};
+  </div>
+);
 
+/* ─── Sidebar ───────────────────────────────────────────────────────────────── */
 const Sidebar = ({ collapsed, setCollapsed }) => {
   const { logout, user } = useAuth();
   const displayName = user?.user?.username || user?.username || 'User';
+  const initial = displayName?.[0]?.toUpperCase() || 'U';
 
   return (
     <motion.aside
-      animate={{ width: collapsed ? 64 : 220 }}
+      animate={{ width: collapsed ? 64 : 224 }}
       transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
       style={{ background: 'var(--sidebar-bg)', borderColor: 'var(--sidebar-border)' }}
       className="hidden md:flex flex-col h-screen border-r flex-shrink-0 overflow-hidden relative z-30"
     >
-      {/* Logo */}
-      <div className="flex items-center justify-between px-4 py-5 border-b" style={{ borderColor: 'var(--sidebar-border)' }}>
-        <Logo collapsed={collapsed} />
+      {/* ── Logo row ── */}
+      <div
+        className="flex items-center justify-between px-3.5 py-4 border-b"
+        style={{ borderColor: 'var(--sidebar-border)' }}
+      >
+        <BrandLogo iconSize={32} wordSize="md" collapsed={collapsed} />
         <button
           onClick={() => setCollapsed(!collapsed)}
-          className="flex-shrink-0 w-6 h-6 flex items-center justify-center rounded-md transition-all"
+          className="flex-shrink-0 w-6 h-6 flex items-center justify-center rounded-md transition-all hover:bg-white/5"
           style={{ color: 'var(--text-muted)' }}
         >
-          {collapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
+          {collapsed ? <ChevronRight size={13} /> : <ChevronLeft size={13} />}
         </button>
       </div>
 
-      {/* Nav items */}
-      <div className="flex-1 overflow-y-auto no-scrollbar py-4 px-2 space-y-1">
-        {navItems.map((item) => (
+      {/* ── Nav items ── */}
+      <div className="flex-1 overflow-y-auto no-scrollbar py-3 px-2 space-y-0.5">
+        {navItems.map(item => (
           <NavItem key={item.path} item={item} collapsed={collapsed} />
         ))}
       </div>
 
-      {/* Divider */}
-      <div className="h-px mx-4" style={{ background: 'var(--sidebar-border)' }} />
+      {/* ── Divider ── */}
+      <div className="h-px mx-3 my-1" style={{ background: 'var(--sidebar-border)' }} />
 
-      {/* Bottom items */}
-      <div className="py-4 px-2 space-y-1">
-        {bottomItems.map((item) => (
+      {/* ── Bottom: profile/settings + user card ── */}
+      <div className="py-3 px-2 space-y-0.5">
+        {bottomItems.map(item => (
           <NavItem key={item.path} item={item} collapsed={collapsed} />
         ))}
 
-        {/* User + Logout */}
-        <div className={`mt-2 flex items-center gap-3 px-3 py-2 rounded-xl border overflow-hidden`} style={{ borderColor: 'var(--sidebar-border)' }}>
-          <div className="w-7 h-7 rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-xs font-bold text-white flex-shrink-0">
-            {displayName?.[0]?.toUpperCase() || 'U'}
+        {/* User card */}
+        <div
+          className="mt-2 flex items-center gap-2.5 px-2.5 py-2.5 rounded-xl overflow-hidden border"
+          style={{
+            borderColor: 'var(--sidebar-border)',
+            background: 'linear-gradient(135deg, rgba(99,102,241,0.06), rgba(168,85,247,0.04))',
+          }}
+        >
+          {/* Avatar with gradient ring */}
+          <div className="relative flex-shrink-0">
+            <div
+              className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-extrabold text-white"
+              style={{
+                background: 'linear-gradient(135deg, #6366f1, #a855f7, #ec4899)',
+                boxShadow: '0 0 0 2px rgba(99,102,241,0.3)',
+              }}
+            >
+              {initial}
+            </div>
+            <span
+              className="absolute bottom-0 right-0 w-2 h-2 rounded-full border-2"
+              style={{ background: '#10b981', borderColor: 'var(--sidebar-bg)' }}
+            />
           </div>
+
           <AnimatePresence>
             {!collapsed && (
               <motion.div
@@ -196,19 +228,26 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
                 exit={{ opacity: 0, width: 0 }}
                 className="flex-1 min-w-0 overflow-hidden"
               >
-                <p className="text-xs font-semibold truncate" style={{ color: 'var(--text-primary)' }}>{displayName}</p>
-                <p className="text-[10px] truncate" style={{ color: 'var(--text-muted)' }}>Backend Dev path</p>
+                <p className="text-xs font-semibold truncate" style={{ color: 'var(--text-primary)' }}>
+                  {displayName}
+                </p>
+                <p className="text-[10px] truncate" style={{ color: 'var(--text-muted)' }}>
+                  Career in progress ✨
+                </p>
               </motion.div>
             )}
           </AnimatePresence>
+
           {!collapsed && (
             <button
               onClick={logout}
-              className="flex-shrink-0 hover:text-red-400 transition-colors"
+              className="flex-shrink-0 w-7 h-7 flex items-center justify-center rounded-lg transition-all hover:bg-red-500/15"
               style={{ color: 'var(--text-muted)' }}
+              onMouseEnter={e => (e.currentTarget.style.color = '#f87171')}
+              onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-muted)')}
               title="Logout"
             >
-              <LogOut size={14} />
+              <LogOut size={13} />
             </button>
           )}
         </div>
@@ -217,7 +256,7 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
   );
 };
 
-// Top header bar for app pages
+/* ─── App Header ────────────────────────────────────────────────────────────── */
 const AppHeader = ({ title, subtitle }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { logout, user } = useAuth();
@@ -226,11 +265,17 @@ const AppHeader = ({ title, subtitle }) => {
 
   return (
     <>
-      <header className="flex items-center justify-between px-6 py-4 border-b sticky top-0 z-20"
-        style={{ background: 'var(--header-bg)', borderColor: 'var(--sidebar-border)', backdropFilter: 'blur(30px)', WebkitBackdropFilter: 'blur(30px)' }}
+      <header
+        className="flex items-center justify-between px-5 py-3 border-b sticky top-0 z-20"
+        style={{
+          background: 'var(--header-bg)',
+          borderColor: 'var(--sidebar-border)',
+          backdropFilter: 'blur(30px)',
+          WebkitBackdropFilter: 'blur(30px)',
+        }}
       >
         <div className="flex items-center gap-4">
-          {/* Mobile menu button */}
+          {/* Mobile menu */}
           <button
             className="md:hidden transition-colors"
             style={{ color: 'var(--text-secondary)' }}
@@ -239,42 +284,85 @@ const AppHeader = ({ title, subtitle }) => {
             <Menu size={20} />
           </button>
           <div>
-            {title && <h1 className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>{title}</h1>}
-            {subtitle && <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{subtitle}</p>}
+            {title && (
+              <h1 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+                {title}
+              </h1>
+            )}
+            {subtitle && (
+              <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                {subtitle}
+              </p>
+            )}
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
-          {/* Real Career XP */}
-          <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-indigo-500/10 rounded-lg border border-indigo-500/20">
-            <span className="text-indigo-400 text-xs font-semibold">XP</span>
-            <span className="text-xs font-bold" style={{ color: 'var(--text-primary)' }}>
-              {((user?.career_xp || user?.data?.career_xp || 250)).toLocaleString()}
+        {/* Right pills */}
+        <div className="flex items-center gap-2">
+          {/* XP pill */}
+          <motion.div
+            whileHover={{ scale: 1.05 }}
+            className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl border cursor-default"
+            style={{
+              background: 'linear-gradient(135deg, rgba(99,102,241,0.12), rgba(168,85,247,0.08))',
+              borderColor: 'rgba(99,102,241,0.25)',
+            }}
+          >
+            <span
+              className="text-[11px] font-bold"
+              style={{
+                background: 'linear-gradient(135deg, #818cf8, #a78bfa)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+              }}
+            >
+              XP
             </span>
-          </div>
+            <span className="text-xs font-bold" style={{ color: 'var(--text-primary)' }}>
+              {(user?.career_xp || user?.data?.career_xp || 250).toLocaleString()}
+            </span>
+          </motion.div>
 
-          {/* Real Learning / GitHub Streak */}
-          <div className="flex items-center gap-2 px-3 py-1.5 bg-orange-500/10 rounded-lg border border-orange-500/20" title={user?.github_username ? "GitHub Contribution Streak" : "Learning Streak"}>
-            <span className="text-orange-400 text-sm">🔥</span>
+          {/* Streak pill */}
+          <motion.div
+            whileHover={{ scale: 1.05 }}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border cursor-default"
+            style={{
+              background: 'rgba(245,158,11,0.08)',
+              borderColor: 'rgba(245,158,11,0.25)',
+            }}
+          >
+            <motion.span
+              animate={{ scale: [1, 1.2, 1] }}
+              transition={{ duration: 2, repeat: Infinity }}
+              className="text-sm"
+            >
+              🔥
+            </motion.span>
             <span className="text-xs font-bold" style={{ color: 'var(--text-primary)' }}>
               {user?.streak || user?.data?.streak || 1}d
             </span>
-          </div>
+          </motion.div>
 
           {/* Theme toggle */}
-          <button
+          <motion.button
+            whileHover={{ scale: 1.08 }}
+            whileTap={{ scale: 0.92 }}
             onClick={toggleTheme}
-            id="theme-toggle-btn"
-            className="w-8 h-8 rounded-lg flex items-center justify-center border transition-all hover:scale-105"
-            style={{ borderColor: 'var(--bg-card-border)', background: 'var(--bg-card)', color: 'var(--text-secondary)' }}
+            className="w-8 h-8 rounded-xl flex items-center justify-center border transition-all"
+            style={{
+              borderColor: 'var(--bg-card-border)',
+              background: 'var(--bg-card)',
+              color: 'var(--text-secondary)',
+            }}
             title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
           >
-            {theme === 'dark' ? <Sun size={15} /> : <Moon size={15} />}
-          </button>
+            {theme === 'dark' ? <Sun size={14} /> : <Moon size={14} />}
+          </motion.button>
         </div>
       </header>
 
-      {/* Mobile slide-in menu */}
+      {/* ── Mobile slide-in menu ── */}
       <AnimatePresence>
         {mobileMenuOpen && (
           <>
@@ -290,27 +378,34 @@ const AppHeader = ({ title, subtitle }) => {
               animate={{ x: 0 }}
               exit={{ x: -280 }}
               transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="fixed top-0 left-0 bottom-0 w-64 bg-[#0d0d12] border-r border-[#1a1a25] z-50 flex flex-col"
+              className="fixed top-0 left-0 bottom-0 w-64 z-50 flex flex-col"
+              style={{ background: 'var(--sidebar-bg)', borderRight: '1px solid var(--sidebar-border)' }}
             >
-              <div className="flex items-center justify-between px-4 py-5 border-b border-[#1a1a25]">
-                <Logo collapsed={false} />
-                <button onClick={() => setMobileMenuOpen(false)} className="text-[#55556a]">
+              <div
+                className="flex items-center justify-between px-4 py-4 border-b"
+                style={{ borderColor: 'var(--sidebar-border)' }}
+              >
+                <BrandLogo iconSize={30} wordSize="md" />
+                <button
+                  onClick={() => setMobileMenuOpen(false)}
+                  style={{ color: 'var(--text-muted)' }}
+                >
                   <X size={18} />
                 </button>
               </div>
-              <div className="flex-1 overflow-y-auto py-4 px-2 space-y-1">
-                {[...navItems, ...bottomItems].map((item) => (
+              <div className="flex-1 overflow-y-auto py-3 px-2 space-y-0.5">
+                {[...navItems, ...bottomItems].map(item => (
                   <div key={item.path} onClick={() => setMobileMenuOpen(false)}>
                     <NavItem item={item} collapsed={false} />
                   </div>
                 ))}
               </div>
-              <div className="p-4 border-t border-[#1a1a25]">
+              <div className="p-4 border-t" style={{ borderColor: 'var(--sidebar-border)' }}>
                 <button
                   onClick={logout}
-                  className="flex items-center gap-2 text-sm text-red-400 hover:text-red-300 transition-colors w-full px-3 py-2 rounded-lg hover:bg-red-500/10"
+                  className="flex items-center gap-2 text-sm text-red-400 hover:text-red-300 w-full px-3 py-2 rounded-xl hover:bg-red-500/10 transition-all"
                 >
-                  <LogOut size={16} /> Logout
+                  <LogOut size={15} /> Sign Out
                 </button>
               </div>
             </motion.div>
@@ -321,7 +416,7 @@ const AppHeader = ({ title, subtitle }) => {
   );
 };
 
-// Main App Layout wrapper
+/* ─── AppLayout ─────────────────────────────────────────────────────────────── */
 const AppLayout = ({ children, title, subtitle }) => {
   const [collapsed, setCollapsed] = useState(false);
 

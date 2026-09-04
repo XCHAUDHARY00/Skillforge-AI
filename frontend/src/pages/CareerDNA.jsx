@@ -5,61 +5,49 @@ import { RadarChart, PolarGrid, PolarAngleAxis, Radar, ResponsiveContainer } fro
 import { Sparkles, TrendingUp, ChevronRight, RefreshCw, AlertCircle } from 'lucide-react';
 import AppLayout from '../components/layout/AppLayout';
 import AIAssistant from '../components/ai/AIAssistant';
+import Tilt3DCard from '../components/Tilt3DCard';
 import api from '../api';
 import { mockRadarData, mockSkills, mockCareerPaths, mockUser } from '../data/mockData';
 
-// ─── API fetch function (React Query ke liye) ────────────────────────────────
 const fetchCareerDNA = async () => {
   try {
-    const res = await api.get('/carrer-dna/');
-    if (res.data?.status !== 'success') {
-      throw new Error(res.data?.message || 'Failed to load Career DNA');
-    }
+    const res = await api.get('/career-dna/');
+    if (res.data?.status !== 'success') throw new Error(res.data?.message || 'Failed to load Career DNA');
     return res.data.data;
   } catch (err) {
     throw new Error(err.response?.data?.message || err.message || 'Server error occurred');
   }
 };
 
-// ─── Small reusable components ───────────────────────────────────────────────
-const SectionCard = ({ title, children, className = '' }) => (
-  <div className={`bg-[#0d0d12] border border-[#1a1a25] rounded-2xl p-5 ${className}`}>
-    <h3 className="text-sm font-semibold text-white mb-4">{title}</h3>
-    {children}
+const SectionCard = ({ title, children, accent = '#6366f1' }) => (
+  <div className="rounded-2xl overflow-hidden" style={{ background: 'var(--bg-card)', border: '1px solid var(--bg-card-border)' }}>
+    <div className="h-0.5" style={{ background: `linear-gradient(90deg, ${accent}, transparent)` }} />
+    <div className="p-5">
+      <h3 className="text-sm font-semibold mb-4" style={{ color: 'var(--text-primary)' }}>{title}</h3>
+      {children}
+    </div>
   </div>
 );
 
 const SkillPill = ({ name, color }) => (
-  <div className="flex items-center gap-2 px-3 py-2 bg-[#111118] border border-[#1a1a25] rounded-xl hover:border-indigo-500/30 transition-all">
-    <div
-      className="w-6 h-6 rounded-lg flex items-center justify-center text-[10px] font-bold"
-      style={{ background: `${color}20`, color }}
-    >
+  <div className="flex items-center gap-2 px-3 py-2 rounded-xl transition-all"
+    style={{ background: `${color}10`, border: `1px solid ${color}25` }}
+    onMouseEnter={e => e.currentTarget.style.borderColor = `${color}45`}
+    onMouseLeave={e => e.currentTarget.style.borderColor = `${color}25`}>
+    <div className="w-6 h-6 rounded-lg flex items-center justify-center text-[10px] font-bold"
+      style={{ background: `${color}20`, color, boxShadow: `0 0 8px ${color}25` }}>
       {name[0]}
     </div>
-    <p className="text-xs font-medium text-white">{name}</p>
+    <p className="text-xs font-medium" style={{ color: 'var(--text-primary)' }}>{name}</p>
   </div>
 );
 
 const SkeletonBlock = ({ h = 'h-4', w = 'w-full', rounded = 'rounded-lg' }) => (
-  <div className={`${h} ${w} ${rounded} bg-[#1a1a25] animate-pulse`} />
+  <div className={`${h} ${w} ${rounded} animate-pulse`} style={{ background: 'var(--bg-card-border)' }} />
 );
 
-// ─── Main Component ───────────────────────────────────────────────────────────
 const CareerDNA = () => {
-  // useQuery — React Query ka main hook
-  // queryKey: ['career-dna'] → unique name for this query
-  // queryFn: fetchCareerDNA → function jo data fetch karta hai
-  // staleTime already set globally in App.jsx (10 min)
-  const {
-    data: dnaData,
-    isLoading,
-    isError,
-    error,
-    refetch,
-    isFetching,       // true jab background mein refresh ho raha ho
-    isStale,          // true jab 10 min baad data purana ho jaaye
-  } = useQuery({
+  const { data: dnaData, isLoading, isError, error, refetch, isFetching } = useQuery({
     queryKey: ['career-dna'],
     queryFn: fetchCareerDNA,
   });
@@ -69,16 +57,12 @@ const CareerDNA = () => {
   const handleForceRefresh = async () => {
     try {
       setIsForceRefreshing(true);
-      await api.get('/carrer-dna/?force=true');
-      await queryClient.invalidateQueries({ queryKey: ['career-dna'] });
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setIsForceRefreshing(false);
-    }
+      await api.get('/career-dna/?force=true');
+      refetch();
+    } catch (err) { console.error(err); }
+    finally { setIsForceRefreshing(false); }
   };
 
-  // Real data ya mock fallback
   const radarData       = dnaData?.radar_data
     ? dnaData.radar_data.map(d => ({ subject: d.subject, A: d.score }))
     : mockRadarData;
@@ -95,38 +79,38 @@ const CareerDNA = () => {
 
         {/* Error banner */}
         {isError && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="flex items-center gap-3 px-4 py-3 bg-amber-500/10 border border-amber-500/25 rounded-xl"
-          >
+          <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
+            className="flex items-center gap-3 px-4 py-3 rounded-xl"
+            style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.25)' }}>
             <AlertCircle size={15} className="text-amber-400 flex-shrink-0" />
             <p className="text-xs text-amber-300">{error?.message || 'Failed to load. Showing demo data.'}</p>
-            <button
-              onClick={() => refetch()}
-              className="ml-auto flex items-center gap-1.5 text-xs text-amber-400 hover:text-amber-300 font-medium"
-            >
+            <button onClick={() => refetch()} className="ml-auto flex items-center gap-1.5 text-xs text-amber-400 hover:text-amber-300 font-medium">
               <RefreshCw size={11} /> Retry
             </button>
           </motion.div>
         )}
 
-        {/* ── Profile Header ────────────────────────────────────────────── */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-[#0d0d12] border border-[#1a1a25] rounded-2xl p-6 relative overflow-hidden"
-        >
-          <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/5 to-violet-500/5 pointer-events-none" />
+        {/* ── Profile Header ─────────────────────────────────────────────── */}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+          className="rounded-2xl p-6 relative overflow-hidden"
+          style={{ background: 'var(--bg-card)', border: '1px solid var(--bg-card-border)' }}>
+          {/* Ambient glow */}
+          <div className="absolute inset-0 pointer-events-none"
+            style={{ background: 'radial-gradient(ellipse at 20% 50%, rgba(99,102,241,0.06), transparent 60%)' }} />
+          {/* Top gradient bar */}
+          <div className="absolute top-0 left-0 right-0 h-0.5"
+            style={{ background: 'linear-gradient(90deg, #6366f1, #8b5cf6, #ec4899, #f97316, #14b8a6)' }} />
+
           <div className="relative flex flex-col md:flex-row items-start md:items-center gap-5">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-2xl font-bold text-white glow-indigo">
-              R
+            <div className="w-16 h-16 rounded-2xl flex items-center justify-center text-2xl font-bold text-white"
+              style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', boxShadow: '0 0 24px rgba(99,102,241,0.4)' }}>
+              {mockUser.name[0]}
             </div>
             <div className="flex-1">
-              <h1 className="text-xl font-bold text-white" style={{ fontFamily: 'Space Grotesk, sans-serif' }}>
+              <h1 className="text-xl font-bold" style={{ fontFamily: 'Space Grotesk, sans-serif', color: 'var(--text-primary)' }}>
                 {mockUser.name}
               </h1>
-              <p className="text-sm text-[#55556a]">
+              <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
                 Targeting: <span className="text-indigo-400 font-medium">{mockUser.targetRole}</span>
               </p>
 
@@ -134,45 +118,42 @@ const CareerDNA = () => {
               <div className="flex flex-wrap gap-2 mt-3">
                 {isLoading
                   ? [1, 2, 3].map(i => <SkeletonBlock key={i} h="h-6" w="w-20" rounded="rounded-lg" />)
-                  : personalityTags.map(tag => (
-                    <span key={tag} className="px-2.5 py-1 bg-indigo-500/15 border border-indigo-500/25 rounded-lg text-[11px] text-indigo-300 font-medium">
+                  : personalityTags.map((tag, i) => (
+                    <motion.span key={tag} initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: i * 0.07 }}
+                      className="px-2.5 py-1 rounded-lg text-[11px] font-medium"
+                      style={{ background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.28)', color: '#a5b4fc' }}>
                       {tag}
-                    </span>
+                    </motion.span>
                   ))
                 }
               </div>
             </div>
 
-            {/* Readiness + refresh state */}
+            {/* Readiness + refresh */}
             <div className="flex flex-col items-end gap-2">
               <div className="flex items-center gap-2">
-                <p className="text-xs text-[#55556a]">Readiness Score</p>
-                {/* isFetching → background mein refresh ho raha hai */}
-                {isFetching && !isLoading && (
-                  <RefreshCw size={11} className="text-indigo-400 animate-spin" />
-                )}
-                
-                {/* Force Refresh Button */}
+                <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Readiness Score</p>
+                {isFetching && !isLoading && <RefreshCw size={11} className="text-indigo-400 animate-spin" />}
                 {!isLoading && !isFetching && (
-                  <button
-                    onClick={handleForceRefresh}
-                    disabled={isForceRefreshing}
-                    title="Force analyze DNA"
-                    className="p-1.5 rounded-lg border border-[#1a1a25] text-[#55556a] hover:text-white hover:border-[#2a2a38] transition-all disabled:opacity-50 ml-2"
-                  >
+                  <button onClick={handleForceRefresh} disabled={isForceRefreshing} title="Force analyze DNA"
+                    className="p-1.5 rounded-lg transition-all disabled:opacity-50"
+                    style={{ border: '1px solid var(--bg-card-border)', color: 'var(--text-muted)' }}>
                     <RefreshCw size={12} className={isForceRefreshing ? "animate-spin text-indigo-400" : ""} />
                   </button>
                 )}
               </div>
               {isLoading
                 ? <SkeletonBlock h="h-9" w="w-20" rounded="rounded-xl" />
-                : <p className="text-3xl font-bold gradient-text">{readinessScore}<span className="text-base text-[#55556a]">/100</span></p>
+                : <motion.p className="text-3xl font-bold gradient-text"
+                    initial={{ scale: 0.5 }} animate={{ scale: 1 }}
+                    transition={{ type: 'spring', stiffness: 200, damping: 15 }}>
+                    {readinessScore}<span className="text-base" style={{ color: 'var(--text-muted)' }}>/100</span>
+                  </motion.p>
               }
               <div className="flex items-center gap-1 text-emerald-400">
                 <TrendingUp size={12} />
-                <span className="text-xs font-medium">
-                  {dnaData ? '✓ AI Analyzed' : 'Demo mode'}
-                </span>
+                <span className="text-xs font-medium">{dnaData ? '✓ AI Analyzed' : 'Demo mode'}</span>
               </div>
             </div>
           </div>
@@ -181,17 +162,16 @@ const CareerDNA = () => {
         {/* ── Radar + Career Paths ──────────────────────────────────────── */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Radar Chart */}
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.1 }}
-            className="bg-[#0d0d12] border border-[#1a1a25] rounded-2xl p-5"
-          >
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-semibold text-white">Skill Radar</h3>
+          <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 }}
+            className="rounded-2xl p-5 relative overflow-hidden"
+            style={{ background: 'var(--bg-card)', border: '1px solid var(--bg-card-border)' }}>
+            <div className="absolute inset-0 pointer-events-none"
+              style={{ background: 'radial-gradient(ellipse at 50% 50%, rgba(99,102,241,0.05), transparent 70%)' }} />
+            <div className="relative flex items-center justify-between mb-4">
+              <h3 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>Skill Radar</h3>
               {dnaData && (
-                <span className="text-[10px] text-emerald-400 font-medium flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block" />
+                <span className="text-[10px] font-medium flex items-center gap-1" style={{ color: '#34d399' }}>
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                   AI Analyzed
                 </span>
               )}
@@ -204,63 +184,49 @@ const CareerDNA = () => {
             ) : (
               <ResponsiveContainer width="100%" height={280}>
                 <RadarChart data={radarData} margin={{ top: 10, right: 30, bottom: 10, left: 30 }}>
-                  <PolarGrid stroke="#1a1a25" />
-                  <PolarAngleAxis
-                    dataKey="subject"
-                    tick={{ fill: '#55556a', fontSize: 11, fontFamily: 'Inter' }}
-                  />
-                  <Radar
-                    name="You"
-                    dataKey="A"
-                    stroke="#6366f1"
-                    fill="#6366f1"
-                    fillOpacity={0.15}
-                    strokeWidth={2}
-                    dot={{ fill: '#6366f1', r: 3 }}
-                  />
+                  <PolarGrid stroke="var(--bg-card-border)" />
+                  <PolarAngleAxis dataKey="subject"
+                    tick={{ fill: 'var(--text-muted)', fontSize: 11, fontFamily: 'Inter' }} />
+                  <Radar name="You" dataKey="A"
+                    stroke="#6366f1" fill="#6366f1" fillOpacity={0.18} strokeWidth={2}
+                    dot={{ fill: '#6366f1', r: 3, filter: 'drop-shadow(0 0 4px rgba(99,102,241,0.8))' }} />
                 </RadarChart>
               </ResponsiveContainer>
             )}
           </motion.div>
 
           {/* Career Path Matches */}
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.1 }}
-            className="bg-[#0d0d12] border border-[#1a1a25] rounded-2xl p-5"
-          >
-            <h3 className="text-sm font-semibold text-white mb-4">Career Path Matches</h3>
+          <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 }}
+            className="rounded-2xl p-5" style={{ background: 'var(--bg-card)', border: '1px solid var(--bg-card-border)' }}>
+            <h3 className="text-sm font-semibold mb-4" style={{ color: 'var(--text-primary)' }}>Career Path Matches</h3>
             <div className="space-y-3">
               {isLoading
                 ? [1, 2, 3, 4].map(i => <SkeletonBlock key={i} h="h-12" rounded="rounded-xl" />)
                 : careerPaths.map((path, i) => (
-                  <motion.div
-                    key={path.role || path.id}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
+                  <motion.div key={path.role || path.id}
+                    initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.2 + i * 0.08 }}
-                    className="flex items-center gap-3 p-3 rounded-xl border border-[#1a1a25] hover:border-[#2a2a38] bg-[#111118] transition-all cursor-pointer group"
-                  >
+                    whileHover={{ x: 2 }}
+                    className="flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all group"
+                    style={{ border: '1px solid var(--bg-card-border)', background: 'var(--bg-secondary)' }}
+                    onMouseEnter={e => { e.currentTarget.style.borderColor = `${path.color || '#6366f1'}40`; e.currentTarget.style.background = `${path.color || '#6366f1'}08`; }}
+                    onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--bg-card-border)'; e.currentTarget.style.background = 'var(--bg-secondary)'; }}>
                     <span className="text-xl">{path.icon}</span>
                     <div className="flex-1">
-                      <p className="text-xs font-medium text-white">{path.role}</p>
+                      <p className="text-xs font-medium" style={{ color: 'var(--text-primary)' }}>{path.role}</p>
                       <div className="flex items-center gap-2 mt-1">
-                        <div className="flex-1 h-1.5 bg-[#1a1a2e] rounded-full overflow-hidden">
-                          <motion.div
-                            initial={{ width: 0 }}
-                            animate={{ width: `${path.match}%` }}
+                        <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--bg-primary)' }}>
+                          <motion.div initial={{ width: 0 }} animate={{ width: `${path.match}%` }}
                             transition={{ delay: 0.4 + i * 0.1, duration: 0.8, ease: 'easeOut' }}
                             className="h-full rounded-full"
-                            style={{ backgroundColor: path.color || '#6366f1' }}
-                          />
+                            style={{ background: path.color || '#6366f1', boxShadow: `0 0 4px ${path.color || '#6366f1'}60` }} />
                         </div>
                       </div>
                     </div>
-                    <span className="text-sm font-bold" style={{ color: path.color || '#6366f1' }}>
+                    <span className="text-sm font-bold" style={{ color: path.color || '#6366f1', textShadow: `0 0 8px ${path.color || '#6366f1'}50` }}>
                       {path.match}%
                     </span>
-                    <ChevronRight size={14} className="text-[#2a2a38] group-hover:text-[#55556a] transition-colors" />
+                    <ChevronRight size={14} className="transition-colors" style={{ color: 'var(--text-muted)' }} />
                   </motion.div>
                 ))
               }
@@ -270,7 +236,7 @@ const CareerDNA = () => {
 
         {/* ── Strengths / Growth / Evidence ────────────────────────────── */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <SectionCard title="💪 Strengths">
+          <SectionCard title="💪 Strengths" accent="#6366f1">
             <div className="flex flex-wrap gap-2">
               {isLoading
                 ? [1, 2, 3].map(i => <SkeletonBlock key={i} h="h-9" w="w-24" rounded="rounded-xl" />)
@@ -279,7 +245,7 @@ const CareerDNA = () => {
             </div>
           </SectionCard>
 
-          <SectionCard title="🚀 Growth Areas">
+          <SectionCard title="🚀 Growth Areas" accent="#f59e0b">
             <div className="flex flex-wrap gap-2">
               {isLoading
                 ? [1, 2, 3].map(i => <SkeletonBlock key={i} h="h-9" w="w-24" rounded="rounded-xl" />)
@@ -288,7 +254,7 @@ const CareerDNA = () => {
             </div>
           </SectionCard>
 
-          <SectionCard title="📊 Career Evidence">
+          <SectionCard title="📊 Career Evidence" accent="#10b981">
             <div className="space-y-3">
               {[
                 { label: 'Projects', count: 3, icon: '🛠️', color: '#6366f1' },
@@ -299,33 +265,33 @@ const CareerDNA = () => {
                 <div key={item.label} className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <span>{item.icon}</span>
-                    <span className="text-xs text-[#9898b0]">{item.label}</span>
+                    <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>{item.label}</span>
                   </div>
-                  <span className="text-sm font-bold" style={{ color: item.color }}>{item.count}</span>
+                  <span className="text-sm font-bold" style={{ color: item.color, textShadow: `0 0 8px ${item.color}40` }}>{item.count}</span>
                 </div>
               ))}
             </div>
           </SectionCard>
         </div>
 
-        {/* ── AI Summary ────────────────────────────────────────────────── */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-          className="bg-indigo-500/8 border border-indigo-500/20 rounded-2xl p-5 flex items-start gap-4"
-        >
-          <div className="w-9 h-9 rounded-xl bg-indigo-500/20 flex items-center justify-center flex-shrink-0">
+        {/* ── AI Summary ─────────────────────────────────────────────────── */}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}
+          className="rounded-2xl p-5 flex items-start gap-4 relative overflow-hidden"
+          style={{ background: 'rgba(99,102,241,0.07)', border: '1px solid rgba(99,102,241,0.22)' }}>
+          <div className="absolute inset-0 pointer-events-none"
+            style={{ background: 'radial-gradient(ellipse at 0% 50%, rgba(99,102,241,0.08), transparent 50%)' }} />
+          <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 relative"
+            style={{ background: 'rgba(99,102,241,0.2)', boxShadow: '0 0 16px rgba(99,102,241,0.3)' }}>
             <Sparkles size={16} className="text-indigo-400" />
           </div>
-          <div className="flex-1">
-            <p className="text-xs text-indigo-400 font-semibold uppercase tracking-wider mb-2">
+          <div className="flex-1 relative">
+            <p className="text-xs text-indigo-400 font-semibold uppercase tracking-wider mb-2 flex items-center gap-2">
               AI Career Analysis
-              {dnaData && <span className="ml-2 text-emerald-400 normal-case">· Live</span>}
+              {dnaData && <span className="text-emerald-400 normal-case flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" /> Live</span>}
             </p>
             {isLoading
               ? <div className="space-y-2"><SkeletonBlock h="h-4" /><SkeletonBlock h="h-4" w="w-4/5" /></div>
-              : <p className="text-sm text-white leading-relaxed">
+              : <p className="text-sm leading-relaxed" style={{ color: 'var(--text-primary)' }}>
                   {aiSummary || 'Your strongest career identity is a Backend Developer with deep Python and SQL expertise. Focus on Docker and System Design to unlock 3 more career paths.'}
                 </p>
             }

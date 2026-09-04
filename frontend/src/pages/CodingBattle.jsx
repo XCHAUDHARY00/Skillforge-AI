@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import Editor from '@monaco-editor/react';\nimport { 
+import Editor from '@monaco-editor/react';
+import {
   Terminal, Play, Clock, 
   Trophy, Zap, Swords, Copy,
   AlertCircle, X, TrendingUp, HelpCircle, CheckCircle, XCircle

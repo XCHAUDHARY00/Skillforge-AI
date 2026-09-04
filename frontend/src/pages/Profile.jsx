@@ -1,64 +1,318 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { User, Edit2, Save, X, Target, Trash2, Plus, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { motion, AnimatePresence, useInView, useMotionValue, useTransform, useSpring } from 'framer-motion';
+import {
+  User, Edit2, Save, X, Target, Trash2, Plus, Loader2,
+  CheckCircle, AlertCircle, Zap, Star, GraduationCap,
+  Briefcase, GitBranch, Sparkles, Trophy, Flame, BookOpen,
+  CalendarDays, AtSign, Shield, TrendingUp
+} from 'lucide-react';
 import AppLayout from '../components/layout/AppLayout';
 import AIAssistant from '../components/ai/AIAssistant';
+import Tilt3DCard from '../components/Tilt3DCard';
 import api from '../api';
 import { mockAchievements } from '../data/mockData';
 
-// ─── Toast Notification Component ───────────────────────────────────────────
+/* ─────────────────────────────────────────────────────────────────────────────
+   SKILL-COLOUR MAP — each skill category gets a unique colour
+───────────────────────────────────────────────────────────────────────────── */
+const SKILL_COLORS = [
+  '#6366f1', '#a855f7', '#ec4899', '#f97316',
+  '#10b981', '#14b8a6', '#3b82f6', '#f59e0b',
+  '#ef4444', '#8b5cf6', '#22d3ee', '#84cc16',
+];
+const skillColor = (idx) => SKILL_COLORS[idx % SKILL_COLORS.length];
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   TOAST
+───────────────────────────────────────────────────────────────────────────── */
 const Toast = ({ message, type }) => (
   <motion.div
-    initial={{ opacity: 0, y: 40, scale: 0.9 }}
+    initial={{ opacity: 0, y: 48, scale: 0.88 }}
     animate={{ opacity: 1, y: 0, scale: 1 }}
-    exit={{ opacity: 0, y: 40, scale: 0.9 }}
-    transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-    className={`fixed bottom-8 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 px-5 py-3 rounded-2xl font-semibold text-sm shadow-2xl border ${
-      type === 'success'
-        ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300 shadow-emerald-500/20'
-        : 'bg-red-500/20 border-red-500/40 text-red-300 shadow-red-500/20'
-    }`}
+    exit={{ opacity: 0, y: 48, scale: 0.88 }}
+    transition={{ type: 'spring', stiffness: 320, damping: 22 }}
+    className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[60] flex items-center gap-3 px-5 py-3 rounded-2xl font-semibold text-sm shadow-2xl border"
+    style={type === 'success' ? {
+      background: 'rgba(16,185,129,0.15)',
+      borderColor: 'rgba(16,185,129,0.4)',
+      color: '#6ee7b7',
+      boxShadow: '0 0 30px rgba(16,185,129,0.2)',
+    } : {
+      background: 'rgba(239,68,68,0.15)',
+      borderColor: 'rgba(239,68,68,0.4)',
+      color: '#fca5a5',
+      boxShadow: '0 0 30px rgba(239,68,68,0.2)',
+    }}
   >
-    {type === 'success' ? <CheckCircle size={16} /> : <AlertCircle size={16} />}
+    {type === 'success'
+      ? <motion.div animate={{ rotate: [0, 20, -10, 0] }} transition={{ duration: 0.5 }}><CheckCircle size={16} /></motion.div>
+      : <AlertCircle size={16} />
+    }
     {message}
   </motion.div>
 );
 
+/* ─────────────────────────────────────────────────────────────────────────────
+   ANIMATED RADIAL SCORE RING
+───────────────────────────────────────────────────────────────────────────── */
+const ScoreRing3D = ({ score, size = 130 }) => {
+  const ref = useRef(null);
+  const inView = useInView(ref, { once: true });
+  const r = 46;
+  const circ = 2 * Math.PI * r;
+  const dash = (score / 100) * circ;
+
+  return (
+    <div ref={ref} className="relative" style={{ width: size, height: size }}>
+      {/* Outer glow rings */}
+      <motion.div
+        animate={{ scale: [1, 1.06, 1], opacity: [0.3, 0.6, 0.3] }}
+        transition={{ duration: 3, repeat: Infinity }}
+        className="absolute inset-[-6px] rounded-full"
+        style={{ background: 'radial-gradient(circle, rgba(99,102,241,0.15) 0%, transparent 70%)' }}
+      />
+      <svg width={size} height={size} className="-rotate-90">
+        {/* Track */}
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none"
+          stroke="rgba(99,102,241,0.1)" strokeWidth="8" />
+        {/* Secondary ring */}
+        <circle cx={size / 2} cy={size / 2} r={r - 10} fill="none"
+          stroke="rgba(168,85,247,0.07)" strokeWidth="4" />
+        {/* Main progress */}
+        <motion.circle
+          cx={size / 2} cy={size / 2} r={r}
+          fill="none"
+          stroke="url(#scoreGrad)"
+          strokeWidth="8"
+          strokeLinecap="round"
+          strokeDasharray={circ}
+          initial={{ strokeDashoffset: circ }}
+          animate={inView ? { strokeDashoffset: circ - dash } : {}}
+          transition={{ duration: 2, ease: 'easeOut', delay: 0.4 }}
+          style={{ filter: 'drop-shadow(0 0 8px rgba(99,102,241,0.7))' }}
+        />
+        {/* Thin inner tick ring */}
+        <motion.circle
+          cx={size / 2} cy={size / 2} r={r - 10}
+          fill="none"
+          stroke="url(#scoreGrad2)"
+          strokeWidth="2.5"
+          strokeLinecap="round"
+          strokeDasharray={2 * Math.PI * (r - 10)}
+          initial={{ strokeDashoffset: 2 * Math.PI * (r - 10) }}
+          animate={inView ? { strokeDashoffset: 2 * Math.PI * (r - 10) * (1 - score / 100) } : {}}
+          transition={{ duration: 2.2, ease: 'easeOut', delay: 0.6 }}
+          style={{ filter: 'drop-shadow(0 0 4px rgba(168,85,247,0.5))' }}
+        />
+        <defs>
+          <linearGradient id="scoreGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor="#6366f1" />
+            <stop offset="50%" stopColor="#a855f7" />
+            <stop offset="100%" stopColor="#14b8a6" />
+          </linearGradient>
+          <linearGradient id="scoreGrad2" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor="#ec4899" />
+            <stop offset="100%" stopColor="#8b5cf6" />
+          </linearGradient>
+        </defs>
+      </svg>
+      {/* Centre label */}
+      <div className="absolute inset-0 flex flex-col items-center justify-center">
+        <motion.span
+          className="text-3xl font-extrabold"
+          initial={{ opacity: 0, scale: 0.5 }}
+          animate={inView ? { opacity: 1, scale: 1 } : {}}
+          transition={{ duration: 0.6, delay: 1, type: 'spring' }}
+          style={{
+            background: 'linear-gradient(135deg, #818cf8, #a78bfa)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+          }}
+        >
+          {score}
+        </motion.span>
+        <span className="text-[10px] font-semibold tracking-widest" style={{ color: 'var(--text-muted)' }}>/ 100</span>
+      </div>
+    </div>
+  );
+};
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   ANIMATED SKILL CHIP
+───────────────────────────────────────────────────────────────────────────── */
+const SkillChip = ({ skill, index, onRemove }) => {
+  const color = skillColor(index);
+  return (
+    <motion.span
+      initial={{ opacity: 0, scale: 0.7, y: 10 }}
+      animate={{ opacity: 1, scale: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.5, y: -8 }}
+      transition={{ type: 'spring', stiffness: 300, damping: 20, delay: index * 0.04 }}
+      whileHover={{ scale: 1.08, y: -2 }}
+      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-semibold cursor-default border"
+      style={{
+        background: `${color}14`,
+        borderColor: `${color}30`,
+        color,
+        boxShadow: `0 2px 8px ${color}18`,
+      }}
+    >
+      <motion.span
+        animate={{ opacity: [0.5, 1, 0.5] }}
+        transition={{ duration: 2.5, repeat: Infinity, delay: index * 0.2 }}
+        className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+        style={{ background: color }}
+      />
+      {skill.name}
+      <button
+        onClick={() => onRemove(skill.id, skill.name)}
+        className="ml-0.5 hover:text-red-400 transition-colors rounded-full"
+        style={{ color: `${color}99` }}
+      >
+        <X size={9} />
+      </button>
+    </motion.span>
+  );
+};
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   STAT CARD (small, right column)
+───────────────────────────────────────────────────────────────────────────── */
+const MiniStatCard = ({ icon: Icon, label, value, color, delay = 0 }) => (
+  <motion.div
+    initial={{ opacity: 0, x: 20 }}
+    animate={{ opacity: 1, x: 0 }}
+    transition={{ delay, duration: 0.5, type: 'spring' }}
+  >
+    <Tilt3DCard
+      className="p-4 rounded-2xl border relative overflow-hidden"
+      style={{ background: 'var(--bg-card)', borderColor: 'var(--bg-card-border)' }}
+      maxTilt={8} scale={1.04}
+    >
+      {/* Gradient top bar */}
+      <div className="absolute top-0 left-0 right-0 h-0.5"
+        style={{ background: `linear-gradient(90deg, transparent, ${color}60, transparent)` }} />
+      {/* Corner glow */}
+      <div className="absolute top-0 right-0 w-12 h-12 rounded-full blur-xl pointer-events-none"
+        style={{ background: `${color}18` }} />
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-[10px] font-medium uppercase tracking-wider mb-0.5" style={{ color: 'var(--text-muted)' }}>{label}</p>
+          <p className="text-base font-extrabold" style={{ color }}>{value}</p>
+        </div>
+        <div className="w-9 h-9 rounded-xl flex items-center justify-center"
+          style={{ background: `${color}15`, border: `1px solid ${color}25` }}>
+          <Icon size={16} style={{ color, filter: `drop-shadow(0 0 4px ${color}80)` }} />
+        </div>
+      </div>
+    </Tilt3DCard>
+  </motion.div>
+);
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   SECTION CARD WRAPPER
+───────────────────────────────────────────────────────────────────────────── */
+const SectionCard = ({ title, icon: Icon, iconColor = '#6366f1', children, delay = 0, action }) => (
+  <motion.div
+    initial={{ opacity: 0, y: 24 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ delay, duration: 0.5, type: 'spring', stiffness: 100 }}
+  >
+    <Tilt3DCard
+      className="rounded-2xl border overflow-hidden"
+      style={{ background: 'var(--bg-card)', borderColor: 'var(--bg-card-border)' }}
+      maxTilt={4} scale={1.01} glare={false}
+    >
+      {/* Top gradient accent */}
+      <div className="h-0.5 w-full"
+        style={{ background: `linear-gradient(90deg, ${iconColor}40, ${iconColor}80, transparent)` }} />
+      <div className="p-5">
+        <div className="flex items-center justify-between mb-5">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl flex items-center justify-center"
+              style={{ background: `${iconColor}15`, border: `1px solid ${iconColor}25` }}>
+              <Icon size={15} style={{ color: iconColor, filter: `drop-shadow(0 0 4px ${iconColor}80)` }} />
+            </div>
+            <h3 className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>{title}</h3>
+          </div>
+          {action}
+        </div>
+        {children}
+      </div>
+    </Tilt3DCard>
+  </motion.div>
+);
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   INPUT FIELD (shared style)
+───────────────────────────────────────────────────────────────────────────── */
+const Field = ({ label, children }) => (
+  <div>
+    <label className="block text-[10px] font-bold uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-muted)' }}>
+      {label}
+    </label>
+    {children}
+  </div>
+);
+const inputCls = "w-full rounded-xl px-3 py-2 text-xs transition-all focus:outline-none focus:ring-2 focus:ring-indigo-500/30 resize-none";
+const inputStyle = {
+  background: 'var(--bg-input)',
+  border: '1px solid var(--bg-card-border)',
+  color: 'var(--text-primary)',
+};
+const onFocusIn = e => (e.target.style.borderColor = 'rgba(99,102,241,0.5)');
+const onFocusOut = e => (e.target.style.borderColor = 'var(--bg-card-border)');
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   ADD / CANCEL BUTTONS
+───────────────────────────────────────────────────────────────────────────── */
+const FormActions = ({ onCancel, saving, saveLabel = 'Save' }) => (
+  <div className="flex justify-end gap-2 pt-1">
+    <button type="button" onClick={onCancel}
+      className="px-3 py-1.5 rounded-xl text-xs font-semibold transition-all border hover:bg-white/5"
+      style={{ borderColor: 'var(--bg-card-border)', color: 'var(--text-secondary)' }}
+    >
+      Cancel
+    </button>
+    <motion.button
+      type="submit" disabled={saving}
+      whileHover={!saving ? { scale: 1.03, boxShadow: '0 0 20px rgba(99,102,241,0.4)' } : {}}
+      whileTap={!saving ? { scale: 0.97 } : {}}
+      className="flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-xs font-bold text-white disabled:opacity-50 transition-all"
+      style={{ background: 'linear-gradient(135deg, #6366f1, #a855f7)' }}
+    >
+      {saving ? <><Loader2 size={11} className="animate-spin" /> Saving…</> : <><Plus size={11} /> {saveLabel}</>}
+    </motion.button>
+  </div>
+);
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   MAIN PROFILE PAGE
+═══════════════════════════════════════════════════════════════════════════ */
 const Profile = () => {
   const [profileData, setProfileData] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
   const [form, setForm] = useState({ experience: '', bio: '' });
   const [loading, setLoading] = useState(true);
   const [savingProfile, setSavingProfile] = useState(false);
-
-  // Toast state
-  const [toast, setToast] = useState(null); // { message, type }
-
-  // Skills
+  const [toast, setToast] = useState(null);
   const [newSkill, setNewSkill] = useState('');
   const [isAddingSkill, setIsAddingSkill] = useState(false);
-
-  // Education
   const [isAddingEdu, setIsAddingEdu] = useState(false);
   const [isSavingEdu, setIsSavingEdu] = useState(false);
   const [deletingEduId, setDeletingEduId] = useState(null);
   const [eduForm, setEduForm] = useState({ course: '', institution: '', start_date: '', end_date: '' });
-
-  // Goals
   const [isAddingGoal, setIsAddingGoal] = useState(false);
   const [isSavingGoal, setIsSavingGoal] = useState(false);
   const [deletingGoalId, setDeletingGoalId] = useState(null);
   const [goalForm, setGoalForm] = useState({ title: '', description: '', target_date: '' });
 
-  // Show toast helper
   const showToast = useCallback((message, type = 'success') => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 3000);
   }, []);
 
-  useEffect(() => {
-    loadProfile();
-  }, []);
+  useEffect(() => { loadProfile(); }, []);
 
   const loadProfile = () => {
     setLoading(true);
@@ -74,7 +328,6 @@ const Profile = () => {
       .finally(() => setLoading(false));
   };
 
-  // ── Profile Save ──────────────────────────────────────────────────────────
   const handleSave = async () => {
     setSavingProfile(true);
     try {
@@ -84,14 +337,10 @@ const Profile = () => {
         setIsEditing(false);
         showToast('Profile updated!', 'success');
       }
-    } catch {
-      showToast('Failed to save profile', 'error');
-    } finally {
-      setSavingProfile(false);
-    }
+    } catch { showToast('Failed to save profile', 'error'); }
+    finally { setSavingProfile(false); }
   };
 
-  // ── Skill Actions ─────────────────────────────────────────────────────────
   const handleAddSkill = async (e) => {
     e.preventDefault();
     const skillName = newSkill.trim();
@@ -100,95 +349,59 @@ const Profile = () => {
     try {
       const res = await api.post('/addskills/', { name: skillName });
       if (res.data?.data) {
-        setProfileData(prev => ({
-          ...prev,
-          skills: [...(prev.skills || []), res.data.data]
-        }));
+        setProfileData(prev => ({ ...prev, skills: [...(prev.skills || []), res.data.data] }));
         setNewSkill('');
         showToast(`"${skillName}" added!`, 'success');
       }
-    } catch {
-      showToast('Failed to add skill', 'error');
-    } finally {
-      setIsAddingSkill(false);
-    }
+    } catch { showToast('Failed to add skill', 'error'); }
+    finally { setIsAddingSkill(false); }
   };
 
   const handleRemoveSkill = async (skillId, skillName) => {
     try {
       await api.delete(`/removeskill/${skillId}/`);
-      setProfileData(prev => ({
-        ...prev,
-        skills: (prev.skills || []).filter(s => s.id !== skillId)
-      }));
+      setProfileData(prev => ({ ...prev, skills: (prev.skills || []).filter(s => s.id !== skillId) }));
       showToast(`"${skillName}" removed`, 'success');
-    } catch {
-      showToast('Failed to remove skill', 'error');
-    }
+    } catch { showToast('Failed to remove skill', 'error'); }
   };
 
-  // ── Education Actions ─────────────────────────────────────────────────────
   const handleAddEdu = async (e) => {
     e.preventDefault();
     if (!eduForm.course.trim() || !eduForm.institution.trim() || !eduForm.start_date) {
-      showToast('Please fill Course, Institution, and Start Date', 'error');
-      return;
+      showToast('Please fill Course, Institution, and Start Date', 'error'); return;
     }
     setIsSavingEdu(true);
-
-    // Send null for empty end_date (not empty string)
-    const payload = {
-      course: eduForm.course.trim(),
-      institution: eduForm.institution.trim(),
-      start_date: eduForm.start_date,
-      end_date: eduForm.end_date || null,
-    };
-
     try {
-      const res = await api.post('/addeducation/', payload);
+      const res = await api.post('/addeducation/', {
+        course: eduForm.course.trim(),
+        institution: eduForm.institution.trim(),
+        start_date: eduForm.start_date,
+        end_date: eduForm.end_date || null,
+      });
       if (res.data?.status === 'success' && res.data?.data) {
-        // Append ONLY the new item to local state — NO page reload
-        setProfileData(prev => ({
-          ...prev,
-          user_educations: [...(prev.user_educations || []), res.data.data]
-        }));
+        setProfileData(prev => ({ ...prev, user_educations: [...(prev.user_educations || []), res.data.data] }));
         setEduForm({ course: '', institution: '', start_date: '', end_date: '' });
         setIsAddingEdu(false);
         showToast('Education saved!', 'success');
-      } else {
-        showToast('Could not save education', 'error');
-      }
-    } catch (err) {
-      console.error('Education save error:', err?.response?.data || err.message);
-      showToast('Error saving education', 'error');
-    } finally {
-      setIsSavingEdu(false);
-    }
+      } else { showToast('Could not save education', 'error'); }
+    } catch { showToast('Error saving education', 'error'); }
+    finally { setIsSavingEdu(false); }
   };
 
   const handleDeleteEdu = async (eduId) => {
     setDeletingEduId(eduId);
     try {
       await api.delete(`/education/${eduId}/`);
-      // Remove from local state — NO page reload
-      setProfileData(prev => ({
-        ...prev,
-        user_educations: (prev.user_educations || []).filter(e => e.id !== eduId)
-      }));
+      setProfileData(prev => ({ ...prev, user_educations: (prev.user_educations || []).filter(e => e.id !== eduId) }));
       showToast('Education removed', 'success');
-    } catch {
-      showToast('Failed to delete education', 'error');
-    } finally {
-      setDeletingEduId(null);
-    }
+    } catch { showToast('Failed to delete education', 'error'); }
+    finally { setDeletingEduId(null); }
   };
 
-  // ── Goal Actions ──────────────────────────────────────────────────────────
   const handleAddGoal = async (e) => {
     e.preventDefault();
     if (!goalForm.title.trim() || !goalForm.description.trim()) {
-      showToast('Please fill Role Title and Description', 'error');
-      return;
+      showToast('Please fill Role Title and Description', 'error'); return;
     }
     setIsSavingGoal(true);
     try {
@@ -198,48 +411,49 @@ const Profile = () => {
         target_date: goalForm.target_date || null,
       });
       if (res.data?.data) {
-        setProfileData(prev => ({
-          ...prev,
-          user_career_goals: [...(prev.user_career_goals || []), res.data.data]
-        }));
+        setProfileData(prev => ({ ...prev, user_career_goals: [...(prev.user_career_goals || []), res.data.data] }));
         setGoalForm({ title: '', description: '', target_date: '' });
         setIsAddingGoal(false);
         showToast('Career goal added!', 'success');
       }
-    } catch {
-      showToast('Failed to add career goal', 'error');
-    } finally {
-      setIsSavingGoal(false);
-    }
+    } catch { showToast('Failed to add career goal', 'error'); }
+    finally { setIsSavingGoal(false); }
   };
 
   const handleDeleteGoal = async (goalId) => {
     setDeletingGoalId(goalId);
     try {
       await api.delete(`/careergoal/${goalId}/`);
-      setProfileData(prev => ({
-        ...prev,
-        user_career_goals: (prev.user_career_goals || []).filter(g => g.id !== goalId)
-      }));
+      setProfileData(prev => ({ ...prev, user_career_goals: (prev.user_career_goals || []).filter(g => g.id !== goalId) }));
       showToast('Goal removed', 'success');
-    } catch {
-      showToast('Failed to delete goal', 'error');
-    } finally {
-      setDeletingGoalId(null);
-    }
+    } catch { showToast('Failed to delete goal', 'error'); }
+    finally { setDeletingGoalId(null); }
   };
 
   const displayName = profileData?.user?.username || 'there';
+  const initial = displayName?.[0]?.toUpperCase() || 'U';
   const targetRole = profileData?.user_career_goals?.length
     ? profileData.user_career_goals[profileData.user_career_goals.length - 1].title
     : 'Software Developer';
 
+  /* ── Loading screen ── */
   if (loading) {
     return (
       <AppLayout title="Profile" subtitle="Your career profile">
-        <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3">
-          <Loader2 size={28} className="animate-spin text-indigo-400" />
-          <p className="text-xs text-[#55556a]">Loading your profile...</p>
+        <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
+          <motion.div
+            animate={{ rotate: 360 }}
+            transition={{ duration: 1.2, repeat: Infinity, ease: 'linear' }}
+            className="w-10 h-10 rounded-full border-2 border-transparent"
+            style={{ borderTopColor: '#6366f1', borderRightColor: '#a855f7' }}
+          />
+          <motion.p
+            animate={{ opacity: [0.4, 1, 0.4] }}
+            transition={{ duration: 2, repeat: Infinity }}
+            className="text-xs" style={{ color: 'var(--text-muted)' }}
+          >
+            Loading your profile…
+          </motion.p>
         </div>
         <AIAssistant />
       </AppLayout>
@@ -248,361 +462,574 @@ const Profile = () => {
 
   return (
     <AppLayout title="Profile" subtitle="Your career profile">
-      <div className="p-6 max-w-5xl mx-auto space-y-5">
+      <div className="p-5 max-w-5xl mx-auto space-y-5">
 
-        {/* ── Profile Header ── */}
+        {/* ════════════════════════════════════════════════════
+            HERO HEADER CARD — 3D perspective banner
+        ════════════════════════════════════════════════════ */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-          className="bg-[#0d0d12] border border-[#1a1a25] rounded-2xl p-6 relative overflow-hidden"
+          initial={{ opacity: 0, y: -24 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.7, type: 'spring', stiffness: 80 }}
+          className="relative rounded-3xl overflow-hidden"
+          style={{ background: 'var(--bg-card)', border: '1px solid var(--bg-card-border)' }}
         >
-          <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/5 to-violet-500/5 pointer-events-none" />
-          <div className="relative flex flex-col md:flex-row items-start md:items-center gap-5">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-2xl font-bold text-white">
-              {displayName[0]?.toUpperCase() || 'U'}
-            </div>
-            <div className="flex-1">
-              <h1 className="text-xl font-bold text-white">{displayName}</h1>
-              <p className="text-sm text-[#55556a] mt-0.5">{profileData?.user?.email || 'No email added'}</p>
-              <div className="flex items-center gap-2 mt-2">
-                <Target size={13} className="text-indigo-400" />
-                <span className="text-xs text-indigo-400">Targeting: {targetRole}</span>
+          {/* Animated gradient banner behind avatar */}
+          <div className="absolute top-0 left-0 right-0 h-28 overflow-hidden">
+            <motion.div
+              animate={{ backgroundPosition: ['0% 50%', '100% 50%', '0% 50%'] }}
+              transition={{ duration: 8, repeat: Infinity, ease: 'linear' }}
+              className="absolute inset-0"
+              style={{
+                background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 20%, #ec4899 40%, #f97316 60%, #14b8a6 80%, #4f46e5 100%)',
+                backgroundSize: '300% 300%',
+                opacity: 0.18,
+              }}
+            />
+            {/* Subtle grid overlay */}
+            <div className="absolute inset-0 bg-grid opacity-30" />
+            {/* Shimmer scan line */}
+            <motion.div
+              animate={{ x: ['-100%', '200%'] }}
+              transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut', repeatDelay: 2 }}
+              className="absolute top-0 bottom-0 w-1/3 pointer-events-none"
+              style={{ background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.06), transparent)' }}
+            />
+          </div>
+
+          {/* Floating orbs */}
+          <motion.div
+            animate={{ x: ['-5%', '5%', '-5%'], y: ['-5%', '5%', '-5%'], scale: [1, 1.1, 1] }}
+            transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
+            className="absolute top-[-20px] right-[-20px] w-40 h-40 rounded-full pointer-events-none"
+            style={{ background: 'radial-gradient(circle, rgba(99,102,241,0.2) 0%, transparent 70%)' }}
+          />
+          <motion.div
+            animate={{ x: ['5%', '-5%', '5%'], y: ['5%', '-5%', '5%'] }}
+            transition={{ duration: 10, repeat: Infinity, ease: 'easeInOut' }}
+            className="absolute top-4 left-1/3 w-24 h-24 rounded-full pointer-events-none"
+            style={{ background: 'radial-gradient(circle, rgba(236,72,153,0.12) 0%, transparent 70%)' }}
+          />
+
+          <div className="relative px-6 pb-6 pt-6">
+            <div className="flex flex-col sm:flex-row items-start sm:items-end gap-5">
+
+              {/* Avatar — 3D perspective tilt on hover */}
+              <motion.div
+                whileHover={{ rotateY: 15, rotateX: -8, scale: 1.05 }}
+                transition={{ type: 'spring', stiffness: 200, damping: 15 }}
+                style={{ transformStyle: 'preserve-3d', perspective: '600px', transformOrigin: 'center' }}
+                className="relative flex-shrink-0"
+              >
+                <div
+                  className="w-20 h-20 rounded-2xl flex items-center justify-center text-3xl font-extrabold text-white"
+                  style={{
+                    background: 'linear-gradient(135deg, #4f46e5, #a855f7, #ec4899)',
+                    boxShadow: '0 0 0 3px rgba(99,102,241,0.3), 0 8px 30px rgba(99,102,241,0.4)',
+                  }}
+                >
+                  {initial}
+                </div>
+                {/* Online dot */}
+                <motion.div
+                  animate={{ scale: [1, 1.3, 1], opacity: [0.8, 1, 0.8] }}
+                  transition={{ duration: 2, repeat: Infinity }}
+                  className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 bg-emerald-400"
+                  style={{ borderColor: 'var(--bg-card)', boxShadow: '0 0 8px rgba(52,211,153,0.7)' }}
+                />
+                {/* Sparkle orbiting */}
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 6, repeat: Infinity, ease: 'linear' }}
+                  className="absolute -inset-2 rounded-2xl pointer-events-none"
+                  style={{ border: '1px dashed rgba(99,102,241,0.2)' }}
+                />
+              </motion.div>
+
+              {/* Info */}
+              <div className="flex-1 min-w-0">
+                <motion.h1
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.2, type: 'spring' }}
+                  className="text-xl font-extrabold mb-0.5"
+                  style={{ color: 'var(--text-primary)', fontFamily: 'Space Grotesk, sans-serif' }}
+                >
+                  {displayName}
+                </motion.h1>
+                <motion.p
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.3 }}
+                  className="text-xs flex items-center gap-1.5 mb-3"
+                  style={{ color: 'var(--text-muted)' }}
+                >
+                  <AtSign size={11} />
+                  {profileData?.user?.email || 'No email added'}
+                </motion.p>
+
+                {/* Badges row */}
+                <motion.div
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.4 }}
+                  className="flex flex-wrap gap-2"
+                >
+                  <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl border text-[11px] font-semibold"
+                    style={{ background: 'rgba(99,102,241,0.12)', borderColor: 'rgba(99,102,241,0.3)', color: '#818cf8' }}>
+                    <Target size={10} /> {targetRole}
+                  </span>
+                  <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl border text-[11px] font-semibold"
+                    style={{ background: 'rgba(245,158,11,0.12)', borderColor: 'rgba(245,158,11,0.3)', color: '#fbbf24' }}>
+                    <Flame size={10} /> {profileData?.streak || 1} day streak
+                  </span>
+                  {profileData?.github_username && (
+                    <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl border text-[11px] font-semibold"
+                      style={{ background: 'rgba(16,185,129,0.12)', borderColor: 'rgba(16,185,129,0.3)', color: '#34d399' }}>
+                      <GitBranch size={10} /> @{profileData.github_username}
+                    </span>
+                  )}
+                </motion.div>
               </div>
+
+              {/* Edit button */}
+              <motion.button
+                onClick={() => setIsEditing(!isEditing)}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold border transition-all flex-shrink-0"
+                style={isEditing
+                  ? { background: 'rgba(239,68,68,0.12)', borderColor: 'rgba(239,68,68,0.3)', color: '#f87171' }
+                  : { background: 'var(--bg-secondary)', borderColor: 'var(--bg-card-border)', color: 'var(--text-secondary)' }
+                }
+              >
+                {isEditing ? <><X size={13} /> Cancel</> : <><Edit2 size={13} /> Edit Profile</>}
+              </motion.button>
             </div>
-            <button
-              onClick={() => setIsEditing(!isEditing)}
-              className="flex items-center gap-2 px-4 py-2 border border-[#2a2a38] rounded-xl text-xs font-medium text-[#9898b0] hover:text-white hover:border-[#3a3a48] transition-all"
-            >
-              {isEditing ? <><X size={13} /> Cancel</> : <><Edit2 size={13} /> Edit Profile</>}
-            </button>
           </div>
         </motion.div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-          {/* ── Left Column ── */}
-          <div className="md:col-span-2 space-y-4">
+        {/* ════════════════════════════════════════════════════
+            MAIN GRID
+        ════════════════════════════════════════════════════ */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+
+          {/* ── LEFT (2/3) ── */}
+          <div className="lg:col-span-2 space-y-5">
 
             {/* About Me */}
-            <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
-              className="bg-[#0d0d12] border border-[#1a1a25] rounded-2xl p-5"
+            <SectionCard title="About Me" icon={User} iconColor="#6366f1" delay={0.1}
+              action={
+                isEditing && (
+                  <motion.button
+                    onClick={handleSave} disabled={savingProfile}
+                    whileHover={!savingProfile ? { scale: 1.05, boxShadow: '0 0 18px rgba(99,102,241,0.4)' } : {}}
+                    whileTap={{ scale: 0.95 }}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-white disabled:opacity-50 transition-all"
+                    style={{ background: 'linear-gradient(135deg, #6366f1, #a855f7)' }}
+                  >
+                    {savingProfile ? <><Loader2 size={11} className="animate-spin" /> Saving…</> : <><Save size={11} /> Save</>}
+                  </motion.button>
+                )
+              }
             >
-              <h3 className="text-sm font-semibold text-white mb-4">About Me</h3>
-              {isEditing ? (
-                <div className="space-y-3">
-                  <div>
-                    <label className="block text-xs font-semibold text-[#9898b0] uppercase tracking-wider mb-1.5">Experience</label>
-                    <input
-                      type="text" value={form.experience}
-                      onChange={e => setForm(prev => ({ ...prev, experience: e.target.value }))}
-                      className="w-full bg-[#111118] border border-[#1a1a25] rounded-xl px-3 py-2 text-sm text-white placeholder-[#55556a] focus:outline-none focus:border-indigo-500/60 transition-all"
-                      placeholder="e.g. 2 years as Frontend Dev"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-[#9898b0] uppercase tracking-wider mb-1.5">Bio</label>
-                    <textarea
-                      value={form.bio} onChange={e => setForm(prev => ({ ...prev, bio: e.target.value }))}
-                      rows={4} placeholder="Write a brief bio..."
-                      className="w-full bg-[#111118] border border-[#1a1a25] rounded-xl px-3 py-2 text-sm text-white placeholder-[#55556a] focus:outline-none focus:border-indigo-500/60 transition-all resize-none"
-                    />
-                  </div>
-                  <div className="flex justify-end pt-2">
-                    <button
-                      onClick={handleSave} disabled={savingProfile}
-                      className="flex items-center gap-2 px-4 py-2 bg-indigo-500 hover:bg-indigo-600 disabled:opacity-50 rounded-xl text-xs font-semibold text-white transition-all"
-                    >
-                      {savingProfile ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
-                      {savingProfile ? 'Saving...' : 'Save Changes'}
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  <div>
-                    <p className="text-[10px] text-[#55556a] uppercase tracking-wider font-medium mb-1">Experience</p>
-                    <p className="text-sm text-[#9898b0]">{profileData?.experience || 'No experience added yet'}</p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] text-[#55556a] uppercase tracking-wider font-medium mb-1">Bio</p>
-                    <p className="text-sm text-[#9898b0] leading-relaxed">{profileData?.bio || 'No bio added yet'}</p>
-                  </div>
-                </div>
-              )}
-            </motion.div>
+              <AnimatePresence mode="wait">
+                {isEditing ? (
+                  <motion.div key="editing" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} className="space-y-3">
+                    <Field label="Experience">
+                      <input type="text" value={form.experience}
+                        onChange={e => setForm(p => ({ ...p, experience: e.target.value }))}
+                        placeholder="e.g. 2 years Frontend Development"
+                        className={inputCls} style={inputStyle}
+                        onFocus={onFocusIn} onBlur={onFocusOut}
+                      />
+                    </Field>
+                    <Field label="Bio">
+                      <textarea value={form.bio} rows={4}
+                        onChange={e => setForm(p => ({ ...p, bio: e.target.value }))}
+                        placeholder="Write a brief bio about yourself…"
+                        className={inputCls} style={inputStyle}
+                        onFocus={onFocusIn} onBlur={onFocusOut}
+                      />
+                    </Field>
+                  </motion.div>
+                ) : (
+                  <motion.div key="viewing" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
+                    <div className="p-3 rounded-xl border" style={{ background: 'var(--bg-secondary)', borderColor: 'var(--bg-card-border)' }}>
+                      <p className="text-[10px] font-bold uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-muted)' }}>Experience</p>
+                      <p className="text-sm leading-relaxed" style={{ color: profileData?.experience ? 'var(--text-primary)' : 'var(--text-muted)' }}>
+                        {profileData?.experience || 'No experience added yet — click Edit Profile to add.'}
+                      </p>
+                    </div>
+                    <div className="p-3 rounded-xl border" style={{ background: 'var(--bg-secondary)', borderColor: 'var(--bg-card-border)' }}>
+                      <p className="text-[10px] font-bold uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-muted)' }}>Bio</p>
+                      <p className="text-sm leading-relaxed" style={{ color: profileData?.bio ? 'var(--text-primary)' : 'var(--text-muted)' }}>
+                        {profileData?.bio || 'No bio yet — tell the world who you are.'}
+                      </p>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </SectionCard>
 
             {/* Education */}
-            <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}
-              className="bg-[#0d0d12] border border-[#1a1a25] rounded-2xl p-5"
-            >
-              <h3 className="text-sm font-semibold text-white mb-4">Education</h3>
-
-              {/* Existing education items */}
+            <SectionCard title="Education" icon={GraduationCap} iconColor="#3b82f6" delay={0.15}>
               <div className="space-y-3 mb-3">
-                {profileData?.user_educations?.length ? (
-                  profileData.user_educations.map(edu => (
-                    <div key={edu.id} className="relative group border-l-2 border-indigo-500/40 pl-4 py-1 flex justify-between items-start">
-                      <div>
-                        <p className="text-sm font-medium text-white">{edu.course}</p>
-                        <p className="text-xs text-[#55556a]">{edu.institution}</p>
-                        <p className="text-[10px] text-[#3a3a4a] mt-0.5">
-                          {edu.start_date} — {edu.end_date || 'Present'}
-                        </p>
-                      </div>
-                      <button
-                        onClick={() => handleDeleteEdu(edu.id)}
-                        disabled={deletingEduId === edu.id}
-                        className="text-[#55556a] hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all duration-200 disabled:opacity-100"
-                        title="Delete education"
+                <AnimatePresence>
+                  {profileData?.user_educations?.length ? (
+                    profileData.user_educations.map((edu, i) => (
+                      <motion.div
+                        key={edu.id}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: 20, height: 0 }}
+                        transition={{ delay: i * 0.06, type: 'spring' }}
+                        className="group flex items-start gap-3 p-3 rounded-xl border"
+                        style={{ background: 'var(--bg-secondary)', borderColor: 'var(--bg-card-border)' }}
                       >
-                        {deletingEduId === edu.id
-                          ? <Loader2 size={13} className="animate-spin text-red-400" />
-                          : <Trash2 size={13} />
-                        }
-                      </button>
-                    </div>
-                  ))
-                ) : (
-                  !isAddingEdu && <p className="text-xs text-[#55556a] italic">No education added yet.</p>
-                )}
+                        {/* Timeline dot */}
+                        <div className="mt-1 flex-shrink-0">
+                          <motion.div
+                            animate={{ scale: [1, 1.3, 1], opacity: [0.6, 1, 0.6] }}
+                            transition={{ duration: 3, repeat: Infinity, delay: i * 0.5 }}
+                            className="w-2.5 h-2.5 rounded-full"
+                            style={{ background: 'linear-gradient(135deg, #3b82f6, #6366f1)', boxShadow: '0 0 6px rgba(59,130,246,0.7)' }}
+                          />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold truncate" style={{ color: 'var(--text-primary)' }}>{edu.course}</p>
+                          <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>{edu.institution}</p>
+                          <p className="text-[10px] mt-0.5 flex items-center gap-1" style={{ color: 'var(--text-muted)' }}>
+                            <CalendarDays size={9} /> {edu.start_date} — {edu.end_date || 'Present'}
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => handleDeleteEdu(edu.id)}
+                          disabled={deletingEduId === edu.id}
+                          className="opacity-0 group-hover:opacity-100 transition-all rounded-lg p-1 hover:bg-red-500/10 flex-shrink-0"
+                          style={{ color: 'var(--text-muted)' }}
+                          onMouseEnter={e => e.currentTarget.style.color = '#f87171'}
+                          onMouseLeave={e => e.currentTarget.style.color = 'var(--text-muted)'}
+                        >
+                          {deletingEduId === edu.id
+                            ? <Loader2 size={12} className="animate-spin text-red-400" />
+                            : <Trash2 size={12} />}
+                        </button>
+                      </motion.div>
+                    ))
+                  ) : (
+                    !isAddingEdu && (
+                      <p className="text-xs italic" style={{ color: 'var(--text-muted)' }}>No education added yet.</p>
+                    )
+                  )}
+                </AnimatePresence>
               </div>
 
-              {/* Add education form */}
               <AnimatePresence>
                 {isAddingEdu && (
                   <motion.form
-                    initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
+                    initial={{ opacity: 0, y: -12, scale: 0.97 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -12, scale: 0.97 }}
                     onSubmit={handleAddEdu}
-                    className="space-y-3 p-4 bg-[#111118] border border-indigo-500/20 rounded-xl"
+                    className="space-y-3 p-4 rounded-xl border mb-3"
+                    style={{ background: 'rgba(59,130,246,0.05)', borderColor: 'rgba(59,130,246,0.25)' }}
                   >
-                    <div>
-                      <label className="block text-[10px] font-semibold text-[#9898b0] uppercase tracking-wider mb-1">Course / Degree *</label>
-                      <input
-                        type="text" required value={eduForm.course}
-                        onChange={e => setEduForm(prev => ({ ...prev, course: e.target.value }))}
+                    <Field label="Course / Degree *">
+                      <input type="text" required value={eduForm.course}
+                        onChange={e => setEduForm(p => ({ ...p, course: e.target.value }))}
                         placeholder="B.Tech Computer Science"
-                        className="w-full bg-[#0d0d12] border border-[#1a1a25] rounded-xl px-3 py-1.5 text-xs text-white placeholder-[#55556a] focus:outline-none focus:border-indigo-500/60 transition-all"
+                        className={inputCls} style={inputStyle}
+                        onFocus={onFocusIn} onBlur={onFocusOut}
                       />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] font-semibold text-[#9898b0] uppercase tracking-wider mb-1">Institution *</label>
-                      <input
-                        type="text" required value={eduForm.institution}
-                        onChange={e => setEduForm(prev => ({ ...prev, institution: e.target.value }))}
+                    </Field>
+                    <Field label="Institution *">
+                      <input type="text" required value={eduForm.institution}
+                        onChange={e => setEduForm(p => ({ ...p, institution: e.target.value }))}
                         placeholder="IIT Delhi"
-                        className="w-full bg-[#0d0d12] border border-[#1a1a25] rounded-xl px-3 py-1.5 text-xs text-white placeholder-[#55556a] focus:outline-none focus:border-indigo-500/60 transition-all"
+                        className={inputCls} style={inputStyle}
+                        onFocus={onFocusIn} onBlur={onFocusOut}
                       />
-                    </div>
+                    </Field>
                     <div className="grid grid-cols-2 gap-2">
-                      <div>
-                        <label className="block text-[10px] font-semibold text-[#9898b0] uppercase tracking-wider mb-1">Start Date *</label>
-                        <input
-                          type="date" required value={eduForm.start_date}
-                          onChange={e => setEduForm(prev => ({ ...prev, start_date: e.target.value }))}
-                          className="w-full bg-[#0d0d12] border border-[#1a1a25] rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-indigo-500/60 transition-all"
+                      <Field label="Start Date *">
+                        <input type="date" required value={eduForm.start_date}
+                          onChange={e => setEduForm(p => ({ ...p, start_date: e.target.value }))}
+                          className={inputCls} style={inputStyle}
+                          onFocus={onFocusIn} onBlur={onFocusOut}
                         />
-                      </div>
-                      <div>
-                        <label className="block text-[10px] font-semibold text-[#9898b0] uppercase tracking-wider mb-1">End Date (Optional)</label>
-                        <input
-                          type="date" value={eduForm.end_date}
-                          onChange={e => setEduForm(prev => ({ ...prev, end_date: e.target.value }))}
-                          className="w-full bg-[#0d0d12] border border-[#1a1a25] rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-indigo-500/60 transition-all"
+                      </Field>
+                      <Field label="End Date (optional)">
+                        <input type="date" value={eduForm.end_date}
+                          onChange={e => setEduForm(p => ({ ...p, end_date: e.target.value }))}
+                          className={inputCls} style={inputStyle}
+                          onFocus={onFocusIn} onBlur={onFocusOut}
                         />
-                      </div>
+                      </Field>
                     </div>
-                    <div className="flex justify-end gap-2 pt-2">
-                      <button type="button" onClick={() => { setIsAddingEdu(false); setEduForm({ course: '', institution: '', start_date: '', end_date: '' }); }}
-                        className="px-3 py-1.5 border border-[#2a2a38] rounded-xl text-xs font-semibold text-[#9898b0] hover:text-white transition-all"
-                      >
-                        Cancel
-                      </button>
-                      <button type="submit" disabled={isSavingEdu}
-                        className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-500 hover:bg-indigo-600 disabled:opacity-60 rounded-xl text-xs font-semibold text-white transition-all"
-                      >
-                        {isSavingEdu ? <><Loader2 size={11} className="animate-spin" /> Saving...</> : <><Plus size={11} /> Save Education</>}
-                      </button>
-                    </div>
+                    <FormActions
+                      onCancel={() => { setIsAddingEdu(false); setEduForm({ course: '', institution: '', start_date: '', end_date: '' }); }}
+                      saving={isSavingEdu} saveLabel="Save Education"
+                    />
                   </motion.form>
                 )}
               </AnimatePresence>
 
               {!isAddingEdu && (
-                <button onClick={() => setIsAddingEdu(true)}
-                  className="w-full mt-2 flex items-center justify-center gap-1.5 py-2 border border-dashed border-[#2a2a38] rounded-xl text-xs text-[#55556a] hover:text-white hover:border-indigo-500/40 transition-all font-medium"
+                <motion.button
+                  onClick={() => setIsAddingEdu(true)}
+                  whileHover={{ scale: 1.01 }}
+                  whileTap={{ scale: 0.99 }}
+                  className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-semibold border border-dashed transition-all"
+                  style={{ borderColor: 'rgba(59,130,246,0.3)', color: 'var(--text-muted)' }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(59,130,246,0.6)'; e.currentTarget.style.color = '#60a5fa'; }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(59,130,246,0.3)'; e.currentTarget.style.color = 'var(--text-muted)'; }}
                 >
-                  <Plus size={13} /> Add Education
-                </button>
+                  <Plus size={12} /> Add Education
+                </motion.button>
               )}
-            </motion.div>
+            </SectionCard>
 
             {/* Career Goals */}
-            <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
-              className="bg-[#0d0d12] border border-[#1a1a25] rounded-2xl p-5"
-            >
-              <h3 className="text-sm font-semibold text-white mb-4">Career Goals</h3>
-
+            <SectionCard title="Career Goals" icon={Target} iconColor="#a855f7" delay={0.2}>
               <div className="space-y-3 mb-3">
-                {profileData?.user_career_goals?.length ? (
-                  profileData.user_career_goals.map(goal => (
-                    <div key={goal.id} className="relative group p-3 bg-[#111118] border border-[#1a1a25] rounded-xl flex justify-between items-start">
-                      <div className="flex-1 mr-4">
-                        <div className="flex items-center justify-between">
-                          <p className="text-xs font-medium text-white">{goal.title}</p>
-                          {goal.target_date && <span className="text-[9px] text-teal-400 whitespace-nowrap">{goal.target_date}</span>}
-                        </div>
-                        <p className="text-[10px] text-[#55556a] mt-0.5 leading-relaxed">{goal.description}</p>
-                      </div>
-                      <button
-                        onClick={() => handleDeleteGoal(goal.id)}
-                        disabled={deletingGoalId === goal.id}
-                        className="text-[#55556a] hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all duration-200 disabled:opacity-100"
+                <AnimatePresence>
+                  {profileData?.user_career_goals?.length ? (
+                    profileData.user_career_goals.map((goal, i) => (
+                      <motion.div
+                        key={goal.id}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: 20, height: 0 }}
+                        transition={{ delay: i * 0.06, type: 'spring' }}
+                        className="group p-3 rounded-xl border relative overflow-hidden"
+                        style={{ background: 'var(--bg-secondary)', borderColor: 'var(--bg-card-border)' }}
                       >
-                        {deletingGoalId === goal.id
-                          ? <Loader2 size={13} className="animate-spin text-red-400" />
-                          : <Trash2 size={13} />
-                        }
-                      </button>
-                    </div>
-                  ))
-                ) : (
-                  !isAddingGoal && <p className="text-xs text-[#55556a] italic">No goals added yet.</p>
-                )}
+                        {/* Left glow bar */}
+                        <div className="absolute left-0 top-0 bottom-0 w-0.5"
+                          style={{ background: 'linear-gradient(180deg, #a855f7, #ec4899)' }} />
+                        <div className="pl-3 flex justify-between items-start gap-3">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-0.5">
+                              <p className="text-xs font-bold truncate" style={{ color: 'var(--text-primary)' }}>{goal.title}</p>
+                              {goal.target_date && (
+                                <span className="flex-shrink-0 text-[9px] px-1.5 py-0.5 rounded-full font-semibold"
+                                  style={{ background: 'rgba(20,184,166,0.12)', color: '#2dd4bf' }}>
+                                  {goal.target_date}
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-[11px] leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{goal.description}</p>
+                          </div>
+                          <button
+                            onClick={() => handleDeleteGoal(goal.id)}
+                            disabled={deletingGoalId === goal.id}
+                            className="opacity-0 group-hover:opacity-100 transition-all rounded-lg p-1 hover:bg-red-500/10 flex-shrink-0"
+                            style={{ color: 'var(--text-muted)' }}
+                            onMouseEnter={e => e.currentTarget.style.color = '#f87171'}
+                            onMouseLeave={e => e.currentTarget.style.color = 'var(--text-muted)'}
+                          >
+                            {deletingGoalId === goal.id
+                              ? <Loader2 size={12} className="animate-spin text-red-400" />
+                              : <Trash2 size={12} />}
+                          </button>
+                        </div>
+                      </motion.div>
+                    ))
+                  ) : (
+                    !isAddingGoal && (
+                      <p className="text-xs italic" style={{ color: 'var(--text-muted)' }}>No career goals added yet.</p>
+                    )
+                  )}
+                </AnimatePresence>
               </div>
 
               <AnimatePresence>
                 {isAddingGoal && (
                   <motion.form
-                    initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
+                    initial={{ opacity: 0, y: -12, scale: 0.97 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -12, scale: 0.97 }}
                     onSubmit={handleAddGoal}
-                    className="space-y-3 p-4 bg-[#111118] border border-indigo-500/20 rounded-xl"
+                    className="space-y-3 p-4 rounded-xl border mb-3"
+                    style={{ background: 'rgba(168,85,247,0.05)', borderColor: 'rgba(168,85,247,0.25)' }}
                   >
-                    <div>
-                      <label className="block text-[10px] font-semibold text-[#9898b0] uppercase tracking-wider mb-1">Target Role / Goal Title *</label>
-                      <input
-                        type="text" required value={goalForm.title}
-                        onChange={e => setGoalForm(prev => ({ ...prev, title: e.target.value }))}
+                    <Field label="Target Role / Goal Title *">
+                      <input type="text" required value={goalForm.title}
+                        onChange={e => setGoalForm(p => ({ ...p, title: e.target.value }))}
                         placeholder="Backend Developer"
-                        className="w-full bg-[#0d0d12] border border-[#1a1a25] rounded-xl px-3 py-1.5 text-xs text-white placeholder-[#55556a] focus:outline-none focus:border-indigo-500/60 transition-all"
+                        className={inputCls} style={inputStyle}
+                        onFocus={onFocusIn} onBlur={onFocusOut}
                       />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] font-semibold text-[#9898b0] uppercase tracking-wider mb-1">Description *</label>
-                      <textarea
-                        required value={goalForm.description}
-                        onChange={e => setGoalForm(prev => ({ ...prev, description: e.target.value }))}
-                        placeholder="Master Django, PostgreSQL and Docker..."
-                        rows={2}
-                        className="w-full bg-[#0d0d12] border border-[#1a1a25] rounded-xl px-3 py-1.5 text-xs text-white placeholder-[#55556a] focus:outline-none focus:border-indigo-500/60 transition-all resize-none"
+                    </Field>
+                    <Field label="Description *">
+                      <textarea required value={goalForm.description} rows={2}
+                        onChange={e => setGoalForm(p => ({ ...p, description: e.target.value }))}
+                        placeholder="Master Django, PostgreSQL and Docker…"
+                        className={inputCls} style={inputStyle}
+                        onFocus={onFocusIn} onBlur={onFocusOut}
                       />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] font-semibold text-[#9898b0] uppercase tracking-wider mb-1">Target Date (Optional)</label>
-                      <input
-                        type="date" value={goalForm.target_date}
-                        onChange={e => setGoalForm(prev => ({ ...prev, target_date: e.target.value }))}
-                        className="w-full bg-[#0d0d12] border border-[#1a1a25] rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-indigo-500/60 transition-all"
+                    </Field>
+                    <Field label="Target Date (optional)">
+                      <input type="date" value={goalForm.target_date}
+                        onChange={e => setGoalForm(p => ({ ...p, target_date: e.target.value }))}
+                        className={inputCls} style={inputStyle}
+                        onFocus={onFocusIn} onBlur={onFocusOut}
                       />
-                    </div>
-                    <div className="flex justify-end gap-2 pt-2">
-                      <button type="button" onClick={() => { setIsAddingGoal(false); setGoalForm({ title: '', description: '', target_date: '' }); }}
-                        className="px-3 py-1.5 border border-[#2a2a38] rounded-xl text-xs font-semibold text-[#9898b0] hover:text-white transition-all"
-                      >
-                        Cancel
-                      </button>
-                      <button type="submit" disabled={isSavingGoal}
-                        className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-500 hover:bg-indigo-600 disabled:opacity-60 rounded-xl text-xs font-semibold text-white transition-all"
-                      >
-                        {isSavingGoal ? <><Loader2 size={11} className="animate-spin" /> Saving...</> : <><Plus size={11} /> Save Goal</>}
-                      </button>
-                    </div>
+                    </Field>
+                    <FormActions
+                      onCancel={() => { setIsAddingGoal(false); setGoalForm({ title: '', description: '', target_date: '' }); }}
+                      saving={isSavingGoal} saveLabel="Save Goal"
+                    />
                   </motion.form>
                 )}
               </AnimatePresence>
 
               {!isAddingGoal && (
-                <button onClick={() => setIsAddingGoal(true)}
-                  className="w-full mt-2 flex items-center justify-center gap-1.5 py-2 border border-dashed border-[#2a2a38] rounded-xl text-xs text-[#55556a] hover:text-white hover:border-indigo-500/40 transition-all font-medium"
+                <motion.button
+                  onClick={() => setIsAddingGoal(true)}
+                  whileHover={{ scale: 1.01 }}
+                  className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-semibold border border-dashed transition-all"
+                  style={{ borderColor: 'rgba(168,85,247,0.3)', color: 'var(--text-muted)' }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.6)'; e.currentTarget.style.color = '#c084fc'; }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.3)'; e.currentTarget.style.color = 'var(--text-muted)'; }}
                 >
-                  <Plus size={13} /> Add Career Goal
-                </button>
+                  <Plus size={12} /> Add Career Goal
+                </motion.button>
               )}
-            </motion.div>
+            </SectionCard>
           </div>
 
-          {/* ── Right Column ── */}
-          <div className="space-y-4">
+          {/* ── RIGHT COLUMN ── */}
+          <div className="space-y-5">
 
-            {/* Skills */}
-            <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
-              className="bg-[#0d0d12] border border-[#1a1a25] rounded-2xl p-5"
+            {/* Career Readiness Ring */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.85 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.15, type: 'spring', stiffness: 100 }}
             >
-              <h3 className="text-sm font-semibold text-white mb-4">Skills</h3>
-              <div className="flex flex-wrap gap-2">
-                {(profileData?.skills || []).map((skill, i) => (
-                  <span key={skill.id || i} className="flex items-center gap-1.5 px-2.5 py-1 bg-indigo-500/15 border border-indigo-500/25 rounded-lg text-[11px] text-indigo-300 font-medium">
-                    {skill.name}
-                    <button onClick={() => handleRemoveSkill(skill.id, skill.name)} className="text-indigo-400 hover:text-red-400 transition-colors">
-                      <X size={10} />
-                    </button>
-                  </span>
-                ))}
-                {(!profileData?.skills || profileData.skills.length === 0) && (
-                  <p className="text-xs text-[#55556a]">No skills added yet.</p>
-                )}
+              <Tilt3DCard
+                className="rounded-2xl border p-5 text-center relative overflow-hidden"
+                style={{ background: 'var(--bg-card)', borderColor: 'var(--bg-card-border)' }}
+                maxTilt={8} scale={1.03}
+              >
+                {/* Gradient top */}
+                <div className="absolute top-0 left-0 right-0 h-0.5"
+                  style={{ background: 'linear-gradient(90deg, #6366f1, #a855f7, #14b8a6)' }} />
+                <div className="absolute inset-0 pointer-events-none"
+                  style={{ background: 'radial-gradient(ellipse at top, rgba(99,102,241,0.06) 0%, transparent 60%)' }} />
+                <div className="relative">
+                  <p className="text-xs font-bold uppercase tracking-widest mb-4"
+                    style={{ color: 'var(--text-muted)' }}>Career Readiness</p>
+                  <div className="flex justify-center mb-3">
+                    <ScoreRing3D score={profileData?.readiness_score || 50} size={130} />
+                  </div>
+                  <motion.p
+                    animate={{ opacity: [0.6, 1, 0.6] }}
+                    transition={{ duration: 3, repeat: Infinity }}
+                    className="text-[11px] font-semibold"
+                    style={{ color: '#10b981' }}
+                  >
+                    ● On Track
+                  </motion.p>
+                </div>
+              </Tilt3DCard>
+            </motion.div>
+
+            {/* Mini stat cards */}
+            <div className="grid grid-cols-2 gap-3">
+              <MiniStatCard icon={Zap} label="Career XP" value={`${(profileData?.career_xp || 250).toLocaleString()}`} color="#a855f7" delay={0.2} />
+              <MiniStatCard icon={Flame} label="Streak" value={`${profileData?.streak || 1}d 🔥`} color="#f97316" delay={0.25} />
+              <MiniStatCard icon={BookOpen} label="Skills" value={`${(profileData?.skills || []).length}`} color="#3b82f6" delay={0.3} />
+              <MiniStatCard icon={Target} label="Goals" value={`${(profileData?.user_career_goals || []).length}`} color="#ec4899" delay={0.35} />
+            </div>
+
+            {/* Skills section */}
+            <SectionCard title="Skills" icon={Zap} iconColor="#f59e0b" delay={0.2}>
+              <div className="flex flex-wrap gap-2 mb-4 min-h-[40px]">
+                <AnimatePresence>
+                  {(profileData?.skills || []).length > 0 ? (
+                    (profileData.skills).map((skill, i) => (
+                      <SkillChip
+                        key={skill.id || i}
+                        skill={skill}
+                        index={i}
+                        onRemove={handleRemoveSkill}
+                      />
+                    ))
+                  ) : (
+                    <motion.p
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className="text-xs italic"
+                      style={{ color: 'var(--text-muted)' }}
+                    >
+                      No skills yet — add your first one below!
+                    </motion.p>
+                  )}
+                </AnimatePresence>
               </div>
-              <form onSubmit={handleAddSkill} className="flex gap-2 mt-4">
+              <form onSubmit={handleAddSkill} className="flex gap-2">
                 <input
                   type="text" required value={newSkill}
                   onChange={e => setNewSkill(e.target.value)}
-                  placeholder="e.g. React"
-                  className="flex-1 bg-[#111118] border border-[#1a1a25] rounded-xl px-3 py-1.5 text-xs text-white placeholder-[#55556a] focus:outline-none focus:border-indigo-500/60 transition-all"
+                  placeholder="e.g. React, Docker…"
+                  className="flex-1 rounded-xl px-3 py-2 text-xs transition-all focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
+                  style={inputStyle}
+                  onFocus={onFocusIn} onBlur={onFocusOut}
                 />
-                <button type="submit" disabled={isAddingSkill}
-                  className="px-3 py-1.5 bg-indigo-500 hover:bg-indigo-600 disabled:opacity-50 rounded-xl text-xs font-semibold text-white transition-all flex items-center gap-1"
+                <motion.button
+                  type="submit" disabled={isAddingSkill}
+                  whileHover={!isAddingSkill ? { scale: 1.08, boxShadow: '0 0 16px rgba(245,158,11,0.4)' } : {}}
+                  whileTap={{ scale: 0.93 }}
+                  className="px-3 py-2 rounded-xl text-xs font-bold text-white flex items-center gap-1 disabled:opacity-50 transition-all"
+                  style={{ background: 'linear-gradient(135deg, #f59e0b, #f97316)' }}
                 >
-                  {isAddingSkill ? <Loader2 size={12} className="animate-spin" /> : <Plus size={12} />} Add
-                </button>
+                  {isAddingSkill ? <Loader2 size={12} className="animate-spin" /> : <Plus size={12} />}
+                </motion.button>
               </form>
-            </motion.div>
-
-            {/* Career Stats */}
-            <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}
-              className="bg-[#0d0d12] border border-[#1a1a25] rounded-2xl p-5"
-            >
-              <h3 className="text-sm font-semibold text-white mb-4">Career Stats</h3>
-              <div className="space-y-3">
-                {[
-                  { label: 'Readiness Score', value: `${profileData?.readiness_score || 50}/100`, color: '#6366f1' },
-                  { label: 'Career XP', value: `${(profileData?.career_xp || 250).toLocaleString()} XP`, color: '#8b5cf6' },
-                  { label: 'Learning Streak', value: `${profileData?.streak || 1} days 🔥`, color: '#f97316' },
-                  { label: 'GitHub Linked', value: profileData?.github_username ? `@${profileData.github_username}` : 'Not linked', color: profileData?.github_username ? '#10b981' : '#9898b0' },
-                ].map(stat => (
-                  <div key={stat.label} className="flex items-center justify-between">
-                    <span className="text-xs text-[#55556a]">{stat.label}</span>
-                    <span className="text-sm font-bold" style={{ color: stat.color }}>{stat.value}</span>
-                  </div>
-                ))}
-              </div>
-            </motion.div>
+            </SectionCard>
 
             {/* Achievements */}
-            <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
-              className="bg-[#0d0d12] border border-[#1a1a25] rounded-2xl p-5"
-            >
-              <h3 className="text-sm font-semibold text-white mb-4">Achievements</h3>
+            <SectionCard title="Achievements" icon={Trophy} iconColor="#f59e0b" delay={0.3}>
               <div className="grid grid-cols-3 gap-2">
-                {mockAchievements.map(a => (
-                  <div key={a.id} className={`flex flex-col items-center gap-1 p-2 rounded-xl border ${a.earned ? 'bg-[#111118] border-[#1a1a25]' : 'bg-[#0a0a0e] border-[#111118] opacity-40'}`}>
-                    <span className="text-lg">{a.icon}</span>
-                    <p className="text-[8px] text-[#55556a] text-center leading-tight">{a.title}</p>
-                  </div>
+                {mockAchievements.map((a, i) => (
+                  <motion.div
+                    key={a.id}
+                    initial={{ opacity: 0, scale: 0.7 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: 0.3 + i * 0.04, type: 'spring' }}
+                    whileHover={a.earned ? { scale: 1.1, y: -3, boxShadow: '0 8px 20px rgba(245,158,11,0.2)' } : {}}
+                    className="flex flex-col items-center gap-1 p-2.5 rounded-xl border transition-all"
+                    style={a.earned ? {
+                      background: 'rgba(245,158,11,0.08)',
+                      borderColor: 'rgba(245,158,11,0.25)',
+                    } : {
+                      background: 'var(--bg-secondary)',
+                      borderColor: 'var(--bg-card-border)',
+                      opacity: 0.4,
+                    }}
+                  >
+                    <motion.span
+                      className="text-xl"
+                      animate={a.earned ? { y: [0, -2, 0] } : {}}
+                      transition={{ duration: 2, repeat: Infinity, delay: i * 0.3, ease: 'easeInOut' }}
+                    >
+                      {a.icon}
+                    </motion.span>
+                    <p className="text-[8px] text-center leading-tight font-medium" style={{ color: a.earned ? '#fbbf24' : 'var(--text-muted)' }}>
+                      {a.title}
+                    </p>
+                  </motion.div>
                 ))}
               </div>
-            </motion.div>
+            </SectionCard>
           </div>
         </div>
       </div>
 
-      {/* Global Toast Notification */}
+      {/* ── Toast ── */}
       <AnimatePresence>
         {toast && <Toast message={toast.message} type={toast.type} />}
       </AnimatePresence>

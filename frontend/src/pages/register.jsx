@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Sparkles, User, Mail, Lock, Eye, EyeOff, ArrowRight, Check } from 'lucide-react';
+import { User, Mail, Lock, Eye, EyeOff, ArrowRight, Check } from 'lucide-react';
 import api from '../api';
+import BrandLogo from '../components/BrandLogo';
 
 const PasswordStrengthBar = ({ password }) => {
   const checks = [
@@ -24,16 +25,29 @@ const PasswordStrengthBar = ({ password }) => {
           <div
             key={i}
             className="flex-1 h-1 rounded-full transition-all duration-300"
-            style={{ backgroundColor: i < strength ? colors[strength] : '#1a1a25' }}
+            style={{ backgroundColor: i < strength ? colors[strength] : 'var(--bg-card-border)' }}
           />
         ))}
       </div>
-      <p className="text-[10px] font-medium" style={{ color: colors[strength] || '#55556a' }}>
+      <p className="text-[10px] font-medium" style={{ color: colors[strength] || 'var(--text-muted)' }}>
         {labels[strength]}
       </p>
     </div>
   );
 };
+
+const InputField = ({ label, icon: Icon, children, rightElement }) => (
+  <div>
+    <label className="block text-xs font-semibold mb-1.5 uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>
+      {label}
+    </label>
+    <div className="relative">
+      {Icon && <Icon size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: 'var(--text-muted)' }} />}
+      {children}
+      {rightElement}
+    </div>
+  </div>
+);
 
 const Register = () => {
   const [form, setForm] = useState({
@@ -55,14 +69,11 @@ const Register = () => {
 
   const handleRegister = async (e) => {
     e.preventDefault();
-    
-    // Email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(form.email)) {
       setError('Please enter a valid email address.');
       return;
     }
-    
     if (form.password !== form.confirmPassword) {
       setError('Passwords do not match.');
       return;
@@ -95,47 +106,52 @@ const Register = () => {
     }
   };
 
-
+  const inputClass = "w-full rounded-xl py-2.5 text-sm transition-all focus:outline-none focus:ring-2 focus:ring-indigo-500/30";
+  const inputStyle = {
+    background: 'var(--bg-input)',
+    border: '1px solid var(--bg-card-border)',
+    color: 'var(--text-primary)',
+  };
+  const handleFocus = e => (e.target.style.borderColor = 'rgba(99,102,241,0.5)');
+  const handleBlur = e => (e.target.style.borderColor = 'var(--bg-card-border)');
 
   return (
-    <div className="min-h-screen bg-[#050508] flex items-center justify-center px-6 py-12 bg-grid">
-      {/* Background glow */}
-      <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] rounded-full bg-indigo-600/8 blur-[150px] pointer-events-none" />
+    <div className="min-h-screen flex items-center justify-center px-6 py-12 relative" style={{ background: 'var(--bg-primary)' }}>
+      {/* Ambient background orbs */}
+      <div className="fixed top-1/3 left-1/4 w-[500px] h-[500px] rounded-full bg-indigo-600/6 blur-[160px] pointer-events-none" />
+      <div className="fixed bottom-1/4 right-1/4 w-[400px] h-[400px] rounded-full bg-violet-600/6 blur-[140px] pointer-events-none" />
+      <div className="bg-grid fixed inset-0 opacity-25 pointer-events-none" />
 
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
+        initial={{ opacity: 0, y: 24 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="w-full max-w-md relative"
+        className="w-full max-w-md relative z-10"
       >
         {/* Header */}
         <div className="text-center mb-8">
-          <Link to="/" className="inline-flex items-center gap-2 mb-6">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center">
-              <Sparkles size={14} className="text-white" />
-            </div>
-            <span className="text-sm font-bold" style={{ fontFamily: 'Space Grotesk, sans-serif' }}>
-              CareerMind <span className="gradient-text">AI</span>
-            </span>
+          <Link to="/" className="inline-flex mb-6">
+            <BrandLogo iconSize={32} wordSize="sm" animated={true} />
           </Link>
-          <h1 className="text-2xl font-bold text-white mb-1">Create your account</h1>
-          <p className="text-sm text-[#55556a]">
+          <h1 className="text-2xl font-bold mb-1" style={{ color: 'var(--text-primary)' }}>Create your account</h1>
+          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
             Already have one?{' '}
-            <Link to="/login" className="text-indigo-400 hover:text-indigo-300 font-medium transition-colors">
+            <Link to="/login" className="text-indigo-400 hover:text-indigo-300 font-semibold transition-colors">
               Sign in
             </Link>
           </p>
         </div>
 
         {/* Card */}
-        <div className="bg-[#0d0d12] border border-[#1a1a25] rounded-2xl p-6 shadow-2xl">
+        <div className="rounded-2xl p-6 shadow-2xl border" style={{ background: 'var(--bg-card)', borderColor: 'var(--bg-card-border)' }}>
           {error && (
             <motion.div
-              initial={{ opacity: 0, y: -10 }}
+              initial={{ opacity: 0, y: -8 }}
               animate={{ opacity: 1, y: 0 }}
-              className="mb-5 px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/30"
+              className="mb-5 px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/25 flex items-start gap-2.5"
             >
-              <p className="text-xs text-red-300">⚠ {error}</p>
+              <span className="text-red-400 flex-shrink-0 mt-0.5">⚠</span>
+              <p className="text-xs text-red-300 leading-relaxed">{error}</p>
             </motion.div>
           )}
 
@@ -144,7 +160,7 @@ const Register = () => {
             <div className="grid grid-cols-2 gap-3">
               {['first_name', 'last_name'].map(field => (
                 <div key={field}>
-                  <label className="block text-xs font-semibold text-[#9898b0] mb-1.5 uppercase tracking-wider">
+                  <label className="block text-xs font-semibold mb-1.5 uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>
                     {field === 'first_name' ? 'First Name' : 'Last Name'}
                   </label>
                   <input
@@ -152,92 +168,110 @@ const Register = () => {
                     required
                     value={form[field]}
                     onChange={e => update(field, e.target.value)}
-                    placeholder={field === 'first_name' ? 'Enter first name' : 'Enter last name'}
-                    className="w-full bg-[#111118] border border-[#1a1a25] rounded-xl px-3 py-2.5 text-sm text-white placeholder-[#55556a] focus:outline-none focus:border-indigo-500/60 transition-all"
+                    placeholder={field === 'first_name' ? 'First name' : 'Last name'}
+                    className={`${inputClass} px-3`}
+                    style={inputStyle}
+                    onFocus={handleFocus}
+                    onBlur={handleBlur}
                   />
                 </div>
               ))}
             </div>
 
             {/* Username */}
-            <div>
-              <label className="block text-xs font-semibold text-[#9898b0] mb-1.5 uppercase tracking-wider">Username</label>
-              <div className="relative">
-                <User size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#55556a]" />
-                <input
-                  type="text"
-                  required
-                  value={form.username}
-                  onChange={e => update('username', e.target.value)}
-                  placeholder="Enter username"
-                  className="w-full bg-[#111118] border border-[#1a1a25] rounded-xl pl-9 pr-4 py-2.5 text-sm text-white placeholder-[#55556a] focus:outline-none focus:border-indigo-500/60 transition-all"
-                />
-              </div>
-            </div>
+            <InputField label="Username" icon={User}>
+              <input
+                type="text"
+                required
+                value={form.username}
+                onChange={e => update('username', e.target.value)}
+                placeholder="Enter username"
+                className={`${inputClass} pl-9 pr-4`}
+                style={inputStyle}
+                onFocus={handleFocus}
+                onBlur={handleBlur}
+              />
+            </InputField>
 
             {/* Email */}
-            <div>
-              <label className="block text-xs font-semibold text-[#9898b0] mb-1.5 uppercase tracking-wider">Email</label>
-              <div className="relative">
-                <Mail size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#55556a]" />
-                <input
-                  type="email"
-                  required
-                  value={form.email}
-                  onChange={e => update('email', e.target.value)}
-                  placeholder="Enter email"
-                  className="w-full bg-[#111118] border border-[#1a1a25] rounded-xl pl-9 pr-4 py-2.5 text-sm text-white placeholder-[#55556a] focus:outline-none focus:border-indigo-500/60 transition-all"
-                />
-              </div>
-            </div>
+            <InputField label="Email" icon={Mail}>
+              <input
+                type="email"
+                required
+                value={form.email}
+                onChange={e => update('email', e.target.value)}
+                placeholder="Enter email address"
+                className={`${inputClass} pl-9 pr-4`}
+                style={inputStyle}
+                onFocus={handleFocus}
+                onBlur={handleBlur}
+              />
+            </InputField>
 
             {/* Password */}
             <div>
-              <label className="block text-xs font-semibold text-[#9898b0] mb-1.5 uppercase tracking-wider">Password</label>
-              <div className="relative">
-                <Lock size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#55556a]" />
+              <InputField label="Password" icon={Lock}
+                rightElement={
+                  <button type="button" onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 transition-colors"
+                    style={{ color: 'var(--text-muted)' }}>
+                    {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
+                  </button>
+                }
+              >
                 <input
                   type={showPassword ? 'text' : 'password'}
                   required
                   value={form.password}
                   onChange={e => update('password', e.target.value)}
-                  placeholder="Enter password (Min 8 chars)"
-                  className="w-full bg-[#111118] border border-[#1a1a25] rounded-xl pl-9 pr-10 py-2.5 text-sm text-white placeholder-[#55556a] focus:outline-none focus:border-indigo-500/60 transition-all"
+                  placeholder="Min 8 characters"
+                  className={`${inputClass} pl-9 pr-10`}
+                  style={inputStyle}
+                  onFocus={handleFocus}
+                  onBlur={handleBlur}
                 />
-                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#55556a] hover:text-[#9898b0] transition-colors">
-                  {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
-                </button>
-              </div>
+              </InputField>
               <PasswordStrengthBar password={form.password} />
             </div>
 
             {/* Confirm Password */}
             <div>
-              <label className="block text-xs font-semibold text-[#9898b0] mb-1.5 uppercase tracking-wider">Confirm Password</label>
+              <label className="block text-xs font-semibold mb-1.5 uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>
+                Confirm Password
+              </label>
               <div className="relative">
-                <Lock size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#55556a]" />
+                <Lock size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-muted)' }} />
                 <input
                   type={showConfirm ? 'text' : 'password'}
                   required
                   value={form.confirmPassword}
                   onChange={e => update('confirmPassword', e.target.value)}
                   placeholder="••••••••"
-                  className={`w-full bg-[#111118] border rounded-xl pl-9 pr-10 py-2.5 text-sm text-white placeholder-[#55556a] focus:outline-none transition-all ${
-                    form.confirmPassword && form.password !== form.confirmPassword
-                      ? 'border-red-500/50 focus:border-red-500/70'
-                      : form.confirmPassword && form.password === form.confirmPassword
-                      ? 'border-emerald-500/50 focus:border-emerald-500/70'
-                      : 'border-[#1a1a25] focus:border-indigo-500/60'
-                  }`}
+                  className={`${inputClass} pl-9 pr-16`}
+                  style={{
+                    ...inputStyle,
+                    borderColor: form.confirmPassword
+                      ? form.password !== form.confirmPassword
+                        ? 'rgba(239,68,68,0.5)'
+                        : 'rgba(16,185,129,0.5)'
+                      : 'var(--bg-card-border)',
+                  }}
+                  onFocus={e => e.target.style.borderColor = form.confirmPassword
+                    ? form.password !== form.confirmPassword ? 'rgba(239,68,68,0.7)' : 'rgba(16,185,129,0.7)'
+                    : 'rgba(99,102,241,0.5)'}
+                  onBlur={e => e.target.style.borderColor = form.confirmPassword
+                    ? form.password !== form.confirmPassword ? 'rgba(239,68,68,0.5)' : 'rgba(16,185,129,0.5)'
+                    : 'var(--bg-card-border)'}
                 />
-                <button type="button" onClick={() => setShowConfirm(!showConfirm)} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#55556a] hover:text-[#9898b0] transition-colors">
-                  {showConfirm ? <EyeOff size={14} /> : <Eye size={14} />}
-                </button>
-                {form.confirmPassword && form.password === form.confirmPassword && (
-                  <div className="absolute right-8 top-1/2 -translate-y-1/2">
-                    <Check size={14} className="text-emerald-400" />
-                  </div>
-                )}
+                <div className="absolute right-3.5 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
+                  {form.confirmPassword && form.password === form.confirmPassword && (
+                    <Check size={13} className="text-emerald-400" />
+                  )}
+                  <button type="button" onClick={() => setShowConfirm(!showConfirm)}
+                    className="transition-colors" style={{ color: 'var(--text-muted)' }}>
+                    {showConfirm ? <EyeOff size={14} /> : <Eye size={14} />}
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -247,13 +281,13 @@ const Register = () => {
                 type="checkbox"
                 checked={agreedTerms}
                 onChange={e => setAgreedTerms(e.target.checked)}
-                className="mt-0.5 w-3.5 h-3.5 rounded border-[#2a2a38] bg-[#111118] accent-indigo-500"
+                className="mt-0.5 w-3.5 h-3.5 rounded accent-indigo-500"
               />
-              <span className="text-xs text-[#55556a] leading-relaxed">
+              <span className="text-xs leading-relaxed" style={{ color: 'var(--text-muted)' }}>
                 I agree to the{' '}
-                <a href="#" className="text-indigo-400 hover:text-indigo-300">Terms of Service</a>
+                <a href="#" className="text-indigo-400 hover:text-indigo-300 transition-colors">Terms of Service</a>
                 {' '}and{' '}
-                <a href="#" className="text-indigo-400 hover:text-indigo-300">Privacy Policy</a>
+                <a href="#" className="text-indigo-400 hover:text-indigo-300 transition-colors">Privacy Policy</a>
               </span>
             </label>
 
@@ -261,14 +295,14 @@ const Register = () => {
             <motion.button
               type="submit"
               disabled={isLoading}
-              whileHover={!isLoading ? { scale: 1.01, boxShadow: '0 0 25px rgba(99,102,241,0.35)' } : {}}
-              whileTap={!isLoading ? { scale: 0.99 } : {}}
-              className="w-full flex items-center justify-center gap-2 py-3 bg-gradient-to-r from-indigo-500 to-violet-600 hover:from-indigo-600 hover:to-violet-700 rounded-xl text-sm font-semibold text-white disabled:opacity-50 disabled:cursor-not-allowed transition-all mt-2"
+              whileHover={!isLoading ? { scale: 1.015, boxShadow: '0 0 28px rgba(99,102,241,0.4)' } : {}}
+              whileTap={!isLoading ? { scale: 0.985 } : {}}
+              className="w-full flex items-center justify-center gap-2 py-3.5 bg-gradient-to-r from-indigo-500 to-violet-600 hover:from-indigo-600 hover:to-violet-700 rounded-xl text-sm font-bold text-white disabled:opacity-50 disabled:cursor-not-allowed transition-all mt-2 shadow-lg shadow-indigo-500/20"
             >
               {isLoading ? (
                 <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Creating account...</>
               ) : (
-                <>Create My CareerMind <ArrowRight size={15} /></>
+                <>Create My SkillForge Account <ArrowRight size={15} /></>
               )}
             </motion.button>
           </form>
