@@ -3,11 +3,14 @@ ai_client.py — Unified AI Client with Gemini-first, Groq-fallback strategy.
 
 Strategy:
   1. Gemini API try karo (fast, free)
-  2. Gemini fail ho jaye (timeout/error) → Groq try karo  
+  2. Gemini fail ho jaye (timeout/error) → Groq try karo
   3. Groq mein bhi multiple keys hai failover ke liye
-  4. Sab fail ho jaye → hardcoded fallback (error return)
+  4. Sab fail ho jaye → RuntimeError raise karo
 
-Bhai yeh system ensure karta hai ki koi bhi service kabhi nahi rukegi!
+Bug fixes:
+  - Fixed GEMINI_MODEL to gemini-3.6-flash (currently active model)
+  - Fixed Groq JSON mode: prompt mein 'json' word hona chahiye
+  - Fixed get_gemini_response() signature compatibility
 """
 
 import os
@@ -16,8 +19,8 @@ import time
 
 # ─── Gemini Setup ──────────────────────────────────────────────────────────────
 
-GEMINI_MODEL = "gemini-2.5-flash"
-GEMINI_TIMEOUT = 20  # seconds — agar 20 second mein reply nahi aaya → Groq pe switch
+GEMINI_MODEL = "gemini-3.6-flash"   # Current active Gemini model
+GEMINI_TIMEOUT = 15  # seconds — agar 15s mein reply nahi → Groq pe switch
 
 def _get_gemini_keys():
     """Gemini API keys collect karta hai env se."""
@@ -32,15 +35,15 @@ def _get_gemini_keys():
     return keys
 
 
-def _call_gemini(prompt, system_instruction=None, is_json=False):
+def _call_gemini(prompt, system_instruction=None):
     """
-    Gemini API call karta hai with timeout.
-    Success → text return
+    Gemini API call karta hai with timeout via threading.
+    Success → text return karta hai
     Fail → Exception raise karta hai (taaki Groq try ho sake)
     """
     from google import genai
     from google.genai import types
-    import signal
+    import threading
 
     keys = _get_gemini_keys()
     if not keys:
@@ -57,8 +60,6 @@ def _call_gemini(prompt, system_instruction=None, is_json=False):
                     system_instruction=system_instruction,
                 )
 
-            # Gemini call with timeout via signal (Unix only) — workaround
-            import threading
             result = [None]
             error = [None]
 
@@ -74,6 +75,7 @@ def _call_gemini(prompt, system_instruction=None, is_json=False):
                     error[0] = e
 
             thread = threading.Thread(target=_do_call)
+            thread.daemon = True
             thread.start()
             thread.join(timeout=GEMINI_TIMEOUT)
 
@@ -90,7 +92,7 @@ def _call_gemini(prompt, system_instruction=None, is_json=False):
 
         except Exception as e:
             last_error = e
-            print(f"[Gemini] Key #{i+1} failed: {type(e).__name__}: {str(e)[:100]}")
+            print(f"[Gemini] Key #{i+1} failed: {type(e).__name__}: {str(e)[:120]}")
             continue
 
     raise RuntimeError(f"All Gemini keys failed. Last: {last_error}")
@@ -118,6 +120,9 @@ def _get_groq_keys():
 def _call_groq(prompt, system_instruction=None, is_json=False, max_tokens=2048, temperature=0.7):
     """
     Groq API call karta hai with multiple key failover.
+    
+    BUG FIX: Groq JSON mode mein prompt mein 'json' word hona chahiye.
+    Agar is_json=True hai aur prompt mein 'json' nahi → automatically add karte hain.
     """
     from groq import Groq
 
@@ -125,10 +130,15 @@ def _call_groq(prompt, system_instruction=None, is_json=False, max_tokens=2048, 
     if not keys:
         raise ValueError("No GROQ_API_KEY found in environment")
 
+    # Groq JSON mode requirement fix: prompt must contain word 'json'
+    actual_prompt = prompt
+    if is_json and 'json' not in prompt.lower():
+        actual_prompt = prompt + "\n\nIMPORTANT: Return your response as valid JSON only."
+
     messages = []
     if system_instruction:
         messages.append({"role": "system", "content": system_instruction})
-    messages.append({"role": "user", "content": prompt})
+    messages.append({"role": "user", "content": actual_prompt})
 
     last_error = None
     for i, api_key in enumerate(keys):
@@ -199,7 +209,7 @@ def _call_groq_with_history(messages_history, system_instruction=None, max_token
     raise RuntimeError(f"All Groq keys failed for chat. Last: {last_error}")
 
 
-# ─── Unified Public API ────────────────────────────────────────────────────────
+# ─── Utility ──────────────────────────────────────────────────────────────────
 
 def clean_json_response(text):
     """Markdown code blocks hata deta hai AI response se."""
@@ -213,12 +223,14 @@ def clean_json_response(text):
     return text.strip()
 
 
+# ─── Public API (Gemini → Groq failover) ─────────────────────────────────────
+
 def call_ai(prompt, system_instruction=None, max_tokens=2048, temperature=0.7):
     """
-    ✅ MAIN FUNCTION — Gemini pehle try karo, fail ho to Groq.
-
+    MAIN FUNCTION — Gemini pehle try karo, fail ho to Groq.
+    
     Bhai yahi woh smart system hai:
-      Gemini → (fail/timeout) → Groq key 1 → (fail) → Groq key 2 → ...
+      Gemini → (fail/timeout 15s) → Groq key 1 → (fail) → Groq key 2 → ...
     """
     # Step 1: Gemini try karo
     try:
@@ -241,23 +253,24 @@ def call_ai(prompt, system_instruction=None, max_tokens=2048, temperature=0.7):
     except Exception as groq_err:
         raise RuntimeError(
             f"Both Gemini and Groq failed. "
-            f"Gemini: {gemini_err} | Groq: {groq_err}"
+            f"Gemini error logged above | Groq: {groq_err}"
         )
 
 
 def call_ai_json(prompt, system_instruction=None, max_tokens=2048, temperature=0.5):
     """
-    ✅ JSON output ke liye — Gemini first, Groq fallback.
+    JSON output ke liye — Gemini first, Groq fallback.
     Automatically parse karke dict return karta hai.
     """
-    # Step 1: Gemini try karo (JSON mode)
+    # Step 1: Gemini try karo
     try:
-        text = _call_gemini(prompt, system_instruction=system_instruction, is_json=True)
-        parsed = json.loads(clean_json_response(text))
+        text = _call_gemini(prompt, system_instruction=system_instruction)
+        cleaned = clean_json_response(text)
+        parsed = json.loads(cleaned)
         print("[AI JSON] Used: Gemini ✓")
         return parsed
     except json.JSONDecodeError as je:
-        print(f"[AI JSON] Gemini returned invalid JSON: {je}, switching to Groq...")
+        print(f"[AI JSON] Gemini returned invalid JSON ({je}), switching to Groq...")
     except Exception as gemini_err:
         print(f"[AI JSON] Gemini failed ({type(gemini_err).__name__}), switching to Groq...")
 
@@ -282,11 +295,12 @@ def call_ai_json(prompt, system_instruction=None, max_tokens=2048, temperature=0
 
 def call_ai_chat(messages_history, system_instruction=None, max_tokens=1024, temperature=0.8):
     """
-    ✅ Chat history ke saath call — Career Coach ke liye.
-    Gemini first, Groq fallback.
+    Chat history ke saath call — Career Coach ke liye.
+    Gemini first → Groq fallback.
     """
     from google import genai
     from google.genai import types
+    import threading
 
     # Step 1: Gemini try karo with history
     try:
@@ -306,7 +320,6 @@ def call_ai_chat(messages_history, system_instruction=None, max_tokens=1024, tem
         if system_instruction:
             config = types.GenerateContentConfig(system_instruction=system_instruction)
 
-        import threading
         result = [None]
         error = [None]
 
@@ -322,6 +335,7 @@ def call_ai_chat(messages_history, system_instruction=None, max_tokens=1024, tem
                 error[0] = e
 
         thread = threading.Thread(target=_do_call)
+        thread.daemon = True
         thread.start()
         thread.join(timeout=GEMINI_TIMEOUT)
 

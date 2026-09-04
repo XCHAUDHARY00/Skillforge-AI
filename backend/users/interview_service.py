@@ -11,11 +11,12 @@ from .ai_client import call_ai, call_ai_json, clean_json_response
 # ─── Legacy Compatibility Wrappers ────────────────────────────────────────────
 # Yeh functions purane naam rakhe hain taaki views.py break na ho.
 
-def get_gemini_response(prompt, system_instruction=None):
+def get_gemini_response(prompt, system_instruction=None, **kwargs):
     """
     Legacy function — internally Gemini first, Groq fallback use karta hai.
+    **kwargs: max_tokens, temperature etc. accept karta hai (backward compat)
     """
-    return call_ai(prompt, system_instruction=system_instruction)
+    return call_ai(prompt, system_instruction=system_instruction, **kwargs)
 
 
 def get_gemini_model(system_instruction=None):
