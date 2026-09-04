@@ -8,7 +8,6 @@ import {
 } from 'lucide-react';
 import AppLayout from '../components/layout/AppLayout';
 import AIAssistant from '../components/ai/AIAssistant';
-import Tilt3DCard from '../components/Tilt3DCard';
 import api from '../api';
 import { mockAchievements } from '../data/mockData';
 
@@ -184,10 +183,9 @@ const MiniStatCard = ({ icon: Icon, label, value, color, delay = 0 }) => (
     animate={{ opacity: 1, x: 0 }}
     transition={{ delay, duration: 0.5, type: 'spring' }}
   >
-    <Tilt3DCard
+    <div
       className="p-4 rounded-2xl border relative overflow-hidden"
       style={{ background: 'var(--bg-card)', borderColor: 'var(--bg-card-border)' }}
-      maxTilt={8} scale={1.04}
     >
       {/* Gradient top bar */}
       <div className="absolute top-0 left-0 right-0 h-0.5"
@@ -205,7 +203,7 @@ const MiniStatCard = ({ icon: Icon, label, value, color, delay = 0 }) => (
           <Icon size={16} style={{ color, filter: `drop-shadow(0 0 4px ${color}80)` }} />
         </div>
       </div>
-    </Tilt3DCard>
+    </div>
   </motion.div>
 );
 
@@ -218,10 +216,9 @@ const SectionCard = ({ title, icon: Icon, iconColor = '#6366f1', children, delay
     animate={{ opacity: 1, y: 0 }}
     transition={{ delay, duration: 0.5, type: 'spring', stiffness: 100 }}
   >
-    <Tilt3DCard
+    <div
       className="rounded-2xl border overflow-hidden"
       style={{ background: 'var(--bg-card)', borderColor: 'var(--bg-card-border)' }}
-      maxTilt={4} scale={1.01} glare={false}
     >
       {/* Top gradient accent */}
       <div className="h-0.5 w-full"
@@ -239,7 +236,7 @@ const SectionCard = ({ title, icon: Icon, iconColor = '#6366f1', children, delay
         </div>
         {children}
       </div>
-    </Tilt3DCard>
+    </div>
   </motion.div>
 );
 
@@ -909,10 +906,9 @@ const Profile = () => {
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.15, type: 'spring', stiffness: 100 }}
             >
-              <Tilt3DCard
+              <div
                 className="rounded-2xl border p-5 text-center relative overflow-hidden"
                 style={{ background: 'var(--bg-card)', borderColor: 'var(--bg-card-border)' }}
-                maxTilt={8} scale={1.03}
               >
                 {/* Gradient top */}
                 <div className="absolute top-0 left-0 right-0 h-0.5"
@@ -934,7 +930,7 @@ const Profile = () => {
                     ● On Track
                   </motion.p>
                 </div>
-              </Tilt3DCard>
+              </div>
             </motion.div>
 
             {/* Mini stat cards */}
