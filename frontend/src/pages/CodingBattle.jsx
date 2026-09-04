@@ -47,6 +47,7 @@ const CodingBattle = () => {
   const [opponent, setOpponent] = useState(null);
   
   const pollInterval = useRef(null);
+  const isTransitioningRef = useRef(false);
   const playerId = useRef(Math.random().toString(36).substring(2, 9)).current;
 
   const me = {
@@ -63,7 +64,7 @@ const CodingBattle = () => {
   };
 
   useEffect(() => {
-    if (!roomCode || battleState === 'lobby') {
+    if (!roomCode || battleState === 'lobby' || battleState === 'finished' || battleState === 'analyzing') {
       if (pollInterval.current) {
         clearInterval(pollInterval.current);
         pollInterval.current = null;
@@ -73,7 +74,9 @@ const CodingBattle = () => {
 
     const apiUrl = getApiUrl();
     
-  const syncRoom = async () => {
+    const syncRoom = async () => {
+      if (isTransitioningRef.current) return;
+
       try {
         const response = await fetch(`${apiUrl}battles/sync/${roomCode}/`);
         if (!response.ok) return;
@@ -105,9 +108,14 @@ const CodingBattle = () => {
             }
           }
           setBattleState('playing');
-        } else if (data.status === 'finished' && (battleState === 'playing' || isWaitingForOpponent)) {
+        } else if (data.status === 'finished' && !isTransitioningRef.current) {
+          isTransitioningRef.current = true;
+          if (pollInterval.current) {
+            clearInterval(pollInterval.current);
+            pollInterval.current = null;
+          }
           setIsWaitingForOpponent(false);
-          setBattleState('analyzing');
+          setWinner(data.winner);
           setMatchStats({
             host_player: data.host_player,
             host_player_id: data.host_player_id,
@@ -116,8 +124,8 @@ const CodingBattle = () => {
             host_score: data.host_score, host_time: data.host_time, 
             join_score: data.join_score, join_time: data.join_time
           });
+          setBattleState('analyzing');
           setTimeout(() => {
-            setWinner(data.winner);
             setBattleState('finished');
           }, 1500);
         }
@@ -179,6 +187,7 @@ const CodingBattle = () => {
   };
 
   const handleFlee = async () => {
+    isTransitioningRef.current = false;
     if (roomCode && battleState !== 'lobby') {
       try {
         const apiUrl = getApiUrl();
@@ -279,6 +288,7 @@ const CodingBattle = () => {
   const generateRoomCode = () => Math.random().toString(36).substring(2, 8).toUpperCase();
 
   const handleCreateRoom = async (mode) => {
+    isTransitioningRef.current = false;
     setGameMode(mode);
     const newRoomCode = generateRoomCode();
     setRoomCode(newRoomCode);
@@ -324,6 +334,7 @@ const CodingBattle = () => {
 
   const handleJoinRoom = async () => {
     if (!joinCode.trim()) return;
+    isTransitioningRef.current = false;
     const code = joinCode.toUpperCase().trim();
     try {
       const apiUrl = getApiUrl();
@@ -648,6 +659,7 @@ const CodingBattle = () => {
 
                 <button 
                   onClick={() => {
+                    isTransitioningRef.current = false;
                     setBattleState('lobby');
                     setRoomCode('');
                     setWinner(null);
