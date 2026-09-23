@@ -211,9 +211,8 @@ def clean_json_response(text):
 def call_ai(prompt, system_instruction=None, max_tokens=2048, temperature=0.7):
     """
     MAIN FUNCTION — Gemini pehle try karo, fail ho to Groq.
-    
     Bhai yahi woh smart system hai:
-      Gemini → (fail/timeout 15s) → Groq key 1 → (fail) → Groq key 2 → ...
+      Gemini → (fail) → Groq key 1 → (fail) → Groq key 2 → ...
     """
     # Step 1: Gemini try karo
     try:
@@ -274,6 +273,61 @@ def call_ai_json(prompt, system_instruction=None, max_tokens=2048, temperature=0
             f"Both Gemini and Groq failed for JSON. "
             f"Last Groq error: {groq_err}"
         )
+
+
+def call_ai_fast_chat(messages_history, system_instruction=None, max_tokens=512, temperature=0.7):
+    """
+    ⚡ SPEED-OPTIMIZED CHAT — Groq llama-3.1-8b-instant FIRST!
+    llama-3.1-8b-instant = sub-second responses on Groq.
+    Fallback: Gemini → Groq 70B.
+
+    Used for: Career Coach chatbot (speed > quality for short replies).
+    """
+    # ✅ Step 1: Groq 8B Instant FIRST — fastest possible response
+    try:
+        from groq import Groq
+        keys = _get_groq_keys()
+        if not keys:
+            raise ValueError("No Groq keys")
+
+        messages = []
+        if system_instruction:
+            messages.append({"role": "system", "content": system_instruction})
+        messages.extend(messages_history)
+
+        client = Groq(api_key=keys[0])
+        resp = client.chat.completions.create(
+            model=GROQ_FAST_MODEL,   # llama-3.1-8b-instant — sub-second!
+            messages=messages,
+            temperature=temperature,
+            max_tokens=max_tokens,
+        )
+        text = resp.choices[0].message.content.strip()
+        print("[AI Fast Chat] Used: Groq 8B-Instant ✓")
+        return text
+    except Exception as groq_fast_err:
+        print(f"[AI Fast Chat] Groq 8B failed ({type(groq_fast_err).__name__}), trying Gemini...")
+
+    # Step 2: Gemini fallback
+    try:
+        text = call_ai_chat(
+            messages_history,
+            system_instruction=system_instruction,
+            max_tokens=max_tokens,
+            temperature=temperature,
+        )
+        return text
+    except Exception as gemini_err:
+        print(f"[AI Fast Chat] Gemini failed too, trying Groq 70B...")
+
+    # Step 3: Groq 70B last resort
+    return _call_groq_with_history(
+        messages_history,
+        system_instruction=system_instruction,
+        max_tokens=max_tokens,
+        temperature=temperature,
+    )
+
 
 
 def call_ai_chat(messages_history, system_instruction=None, max_tokens=1024, temperature=0.8):

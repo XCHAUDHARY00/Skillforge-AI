@@ -1,52 +1,40 @@
 """
-service.py — Career AI Services.
-Strategy: Gemini pehle try karo, fail ho to Groq automatically fallback karta hai.
+service.py — Career AI Services. SPEED OPTIMIZED.
+
+Speed Strategy:
+  - Chat: Groq llama-3.1-8b-instant FIRST (sub-second!) → Gemini fallback
+  - Analysis: Gemini first (quality matters, cached anyway) → Groq fallback
+  - History: Only last 8 messages (less tokens = faster)
+  - max_tokens: Reduced to minimum needed per function
 """
 
 import json
-from .ai_client import call_ai, call_ai_json, call_ai_chat
+from .ai_client import call_ai, call_ai_json, call_ai_chat, call_ai_fast_chat
 
 
 # ─── Career Roadmap ────────────────────────────────────────────────────────────
 
 def generate_career_roadmap(user_profile):
     """
-    User ki profile dekh kar step-by-step career roadmap generate karta hai.
-    Gemini first → Groq fallback.
+    Career roadmap — cached after first call, so first-time only is slow.
     """
-    skills = [skill.name for skill in user_profile.skills.all()]
-    skills_text = ", ".join(skills) if skills else "No skills added yet"
+    skills = [s.name for s in user_profile.skills.only('name').all()]
+    skills_text = ", ".join(skills) if skills else "No skills"
     latest_goal = user_profile.user_career_goals.last()
-    goal_title = latest_goal.title if latest_goal else "General Career Growth"
+    goal_title = latest_goal.title if latest_goal else "Software Developer"
 
     system_instruction = (
-        "You are an elite AI Career Coach. Generate structured, actionable career roadmaps. "
-        "Always respond with pure valid JSON only — no markdown, no explanation, no extra text."
+        "You are a Career Coach AI. Return only valid JSON. No markdown. No extra text."
     )
 
-    prompt = f"""Based on the following user profile, generate a step-by-step learning roadmap to help them achieve their goal.
+    prompt = f"""Generate career roadmap JSON.
+Profile: experience={user_profile.experience}, skills={skills_text}, goal={goal_title}
 
-User Profile:
-- Experience Level: {user_profile.experience}
-- Known Skills: {skills_text}
-- Target Goal: {goal_title}
-
-Return ONLY this exact JSON format (no markdown):
-{{
-    "roadmap": [
-        {{
-            "step": 1,
-            "title": "Learn the Basics",
-            "description": "Start with learning fundamental concepts.",
-            "estimated_time": "2 weeks",
-            "resources": ["Course link 1", "Book name"]
-        }}
-    ]
-}}
-Generate 6-8 steps minimum."""
+Return ONLY this JSON (6 steps, be concise):
+{{"roadmap":[{{"step":1,"title":"Title","description":"Brief desc.","estimated_time":"2 weeks","resources":["Resource 1"]}}]}}"""
 
     try:
-        result = call_ai_json(prompt, system_instruction=system_instruction)
+        result = call_ai_json(prompt, system_instruction=system_instruction, max_tokens=900)
         return result
     except Exception as e:
         print("Roadmap Error:", str(e))
@@ -57,45 +45,45 @@ Generate 6-8 steps minimum."""
 
 def interact_with_career_coach(user_profile, new_message):
     """
-    Career coach chat — Gemini first, Groq fallback.
+    Career coach chat — GROQ FIRST (llama-3.1-8b-instant = sub-second!).
+    Strategy: Groq 8B instant → Gemini fallback → Groq 70B fallback.
+    History: Only last 8 messages to keep tokens low = faster.
     """
     from .models import ChatMessage
 
-    # Database se purani chat history
-    chat_history_qs = ChatMessage.objects.filter(user_profile=user_profile).order_by('timestamp')
+    # ✅ Only last 8 messages (speed optimization — less tokens = faster)
+    chat_history_qs = ChatMessage.objects.filter(
+        user_profile=user_profile
+    ).order_by('-timestamp')[:8]
 
-    # History convert karo
+    # Reverse to get chronological order
     formatted_history = []
-    for msg in chat_history_qs:
+    for msg in reversed(list(chat_history_qs)):
         role = 'user' if msg.sender == 'user' else 'assistant'
         formatted_history.append({"role": role, "content": msg.message})
 
-    # Naya message add karo
+    # New message add karo
     formatted_history.append({"role": "user", "content": new_message})
 
-    # System instruction
-    skills = [skill.name for skill in user_profile.skills.all()]
-    skills_text = ", ".join(skills) if skills else "No skills added yet"
+    # ✅ Compact system prompt (less tokens = faster processing)
+    skills = [s.name for s in user_profile.skills.only('name').all()[:10]]
+    skills_text = ", ".join(skills) if skills else "Not specified"
     latest_goal = user_profile.user_career_goals.last()
-    goal_title = latest_goal.title if latest_goal else "General Career Growth"
-    goal_desc = latest_goal.description if latest_goal else ""
+    goal_title = latest_goal.title if latest_goal else "Career Growth"
 
-    system_instruction = f"""You are an elite AI Career Coach named "CareerMind AI Coach". 
-Your goal is to guide the user on their career path, answer career-related questions, and help them achieve their goals.
-
-User Profile:
-- Experience Level: {user_profile.experience}
-- Known Skills: {skills_text}
-- Target Career Goal: {goal_title} ({goal_desc})
-
-Give professional, practical, and highly motivating answers. Keep your answers brief, clean, and conversational."""
+    system_instruction = (
+        f"You are CareerMind AI Coach. Be brief, helpful, motivating.\n"
+        f"User: exp={user_profile.experience}, skills={skills_text}, goal={goal_title}.\n"
+        f"Keep responses concise (under 150 words). Be conversational and direct."
+    )
 
     try:
-        ai_response_text = call_ai_chat(
+        # ✅ GROQ FIRST — llama-3.1-8b-instant is sub-second!
+        ai_response_text = call_ai_fast_chat(
             formatted_history,
             system_instruction=system_instruction,
-            max_tokens=1024,
-            temperature=0.8,
+            max_tokens=512,
+            temperature=0.7,
         )
 
         # Save both messages to DB
@@ -113,50 +101,24 @@ Give professional, practical, and highly motivating answers. Keep your answers b
 
 def analyze_career_dna(user_profile):
     """
-    Career DNA analysis — Gemini first, Groq fallback.
+    Career DNA analysis — cached after first call.
     """
-    skills = [skill.name for skill in user_profile.skills.all()]
-    skills_text = ", ".join(skills) if skills else "No skills added yet"
+    skills = [s.name for s in user_profile.skills.only('name').all()]
+    skills_text = ", ".join(skills) if skills else "None"
     experience = user_profile.experience or "Fresher"
     latest_goal = user_profile.user_career_goals.last()
-    goal_title = latest_goal.title if latest_goal else "General Software Development"
+    goal_title = latest_goal.title if latest_goal else "Software Developer"
 
-    system_instruction = (
-        "You are an AI Career Analyst. Analyze student profiles and return structured JSON. "
-        "Always respond with pure valid JSON only — no markdown, no extra text."
-    )
+    system_instruction = "You are a Career Analyst AI. Return only valid JSON. No markdown."
 
-    prompt = f"""Analyze the following student profile and return a detailed career DNA analysis.
+    prompt = f"""Analyze this profile and return career DNA JSON.
+experience={experience}, skills={skills_text}, goal={goal_title}
 
-Student Profile:
-- Experience: {experience}
-- Skills: {skills_text}
-- Target Goal: {goal_title}
-
-Return ONLY valid JSON in this exact format:
-{{
-    "radar_data": [
-        {{"subject": "Backend", "score": 8}},
-        {{"subject": "Frontend", "score": 4}},
-        {{"subject": "AI/ML", "score": 3}},
-        {{"subject": "DevOps", "score": 2}},
-        {{"subject": "Databases", "score": 7}},
-        {{"subject": "System Design", "score": 3}}
-    ],
-    "career_paths": [
-        {{"role": "Backend Developer", "match": 86, "icon": "⚙️", "color": "#6366f1"}},
-        {{"role": "Full Stack Developer", "match": 65, "icon": "🖥️", "color": "#3b82f6"}},
-        {{"role": "AI Engineer", "match": 45, "icon": "🤖", "color": "#8b5cf6"}}
-    ],
-    "personality_tags": ["Builder", "Analytical", "Problem Solver"],
-    "strengths": ["Python", "Django", "SQL"],
-    "growth_areas": ["Docker", "System Design", "React"],
-    "readiness_score": 72,
-    "ai_summary": "2-3 line analysis of the student career potential and next steps."
-}}"""
+Return ONLY this JSON format:
+{{"radar_data":[{{"subject":"Backend","score":8}},{{"subject":"Frontend","score":4}},{{"subject":"AI/ML","score":3}},{{"subject":"DevOps","score":2}},{{"subject":"Databases","score":7}},{{"subject":"System Design","score":3}}],"career_paths":[{{"role":"Backend Developer","match":86,"icon":"⚙️","color":"#6366f1"}},{{"role":"Full Stack","match":65,"icon":"🖥️","color":"#3b82f6"}},{{"role":"AI Engineer","match":45,"icon":"🤖","color":"#8b5cf6"}}],"personality_tags":["Builder","Analytical","Problem Solver"],"strengths":["Python","Django"],"growth_areas":["Docker","React"],"readiness_score":72,"ai_summary":"2 sentence analysis here."}}"""
 
     try:
-        result = call_ai_json(prompt, system_instruction=system_instruction)
+        result = call_ai_json(prompt, system_instruction=system_instruction, max_tokens=800)
         return result
     except Exception as e:
         print("Career DNA Error:", str(e))
@@ -167,44 +129,25 @@ Return ONLY valid JSON in this exact format:
 
 def analyze_skill_gaps(user_profile, target_role):
     """
-    Skill gap analysis — Gemini first, Groq fallback.
+    Skill gap analysis — cached per role after first call.
     """
-    skills = [skill.name for skill in user_profile.skills.all()]
+    skills = [s.name for s in user_profile.skills.only('name').all()]
     skills_text = ", ".join(skills) if skills else "None"
 
-    system_instruction = (
-        "You are a Career Skills Analyst. Compare student skills against job role requirements. "
-        "Always respond with pure valid JSON only."
-    )
+    system_instruction = "You are a Skills Analyst AI. Return only valid JSON. No markdown."
 
-    prompt = f"""Compare this student's skills against the requirements for the role: "{target_role}".
+    prompt = f"""Compare skills for role "{target_role}".
+Current skills: {skills_text}
 
-Student's current skills: {skills_text}
+Return ONLY this JSON (exactly 6 skills):
+{{"target_role":"{target_role}","overall_gap_score":65,"skill_gaps":[{{"id":1,"name":"Docker","category":"DevOps","current":2,"required":7,"gap":5,"priority":"high","reason":"Essential for production."}}]}}
 
-Return ONLY valid JSON in this exact format:
-{{
-    "target_role": "{target_role}",
-    "overall_gap_score": 65,
-    "skill_gaps": [
-        {{
-            "id": 1,
-            "name": "Docker",
-            "category": "DevOps",
-            "current": 2,
-            "required": 7,
-            "gap": 5,
-            "priority": "high",
-            "reason": "Docker is essential for deploying backend apps in production."
-        }}
-    ]
-}}
-
-Priority rules: gap >= 5 → "high", gap 3 or 4 → "medium", gap <= 2 → "low"
-Return exactly 6 to 8 skills. overall_gap_score is 0-100 (higher = more ready)."""
+Rules: gap>=5=high, gap 3-4=medium, gap<=2=low. overall_gap_score 0-100 (higher=more ready)."""
 
     try:
-        result = call_ai_json(prompt, system_instruction=system_instruction)
+        result = call_ai_json(prompt, system_instruction=system_instruction, max_tokens=700)
         return result
     except Exception as e:
         print("Skill Gap Error:", str(e))
         return {"error": f"Failed to analyze skill gaps: {str(e)}"}
+
