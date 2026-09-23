@@ -19,8 +19,8 @@ import time
 
 # ─── Gemini Setup ──────────────────────────────────────────────────────────────
 
-GEMINI_MODEL = "gemini-1.5-flash"   # ✅ Fixed: 2.0-flash was giving 404, using stable 1.5-flash
-GEMINI_TIMEOUT = 25  # seconds — increased: 15s was too low, now 25s before Groq switch
+GEMINI_MODEL = "gemini-1.5-flash-8b"   # Trying the lightweight flash model, or fallback to gemini-pro if needed
+GEMINI_TIMEOUT = 25
 
 def _get_gemini_keys():
     """Gemini API keys collect karta hai env se."""
@@ -40,9 +40,6 @@ def _call_gemini(prompt, system_instruction=None):
     Gemini API call karta hai.
     Success → text return karta hai
     Fail → Exception raise karta hai (taaki Groq try ho sake)
-    
-    NOTE: Threading removed — Vercel serverless mein threading limited hai.
-    Direct synchronous call use karte hain with simple try/except.
     """
     from google import genai
     from google.genai import types
@@ -51,40 +48,47 @@ def _call_gemini(prompt, system_instruction=None):
     if not keys:
         raise ValueError("No GEMINI_API_KEY found in environment")
 
+    models_to_try = ["gemini-1.5-flash-8b", "gemini-1.5-flash", "gemini-1.5-flash-latest", "gemini-pro"]
     last_error = None
+
     for i, api_key in enumerate(keys):
-        try:
-            client = genai.Client(api_key=api_key)
-
-            config = None
-            if system_instruction:
-                config = types.GenerateContentConfig(
-                    system_instruction=system_instruction,
-                )
-
-            resp = client.models.generate_content(
-                model=GEMINI_MODEL,
-                contents=prompt,
-                config=config,
+        client = genai.Client(api_key=api_key)
+        config = None
+        if system_instruction:
+            config = types.GenerateContentConfig(
+                system_instruction=system_instruction,
             )
-            text = resp.text.strip()
 
-            if i > 0:
-                print(f"[Gemini Failover] Key #{i+1} succeeded.")
-            return text
+        for model_name in models_to_try:
+            try:
+                resp = client.models.generate_content(
+                    model=model_name,
+                    contents=prompt,
+                    config=config,
+                )
+                text = resp.text.strip()
 
-        except Exception as e:
-            last_error = e
-            print(f"[Gemini] Key #{i+1} failed: {type(e).__name__}: {str(e)[:120]}")
-            continue
+                if i > 0 or model_name != models_to_try[0]:
+                    print(f"[Gemini] Success: Key #{i+1}, Model: {model_name}")
+                return text
 
-    raise RuntimeError(f"All Gemini keys failed. Last: {last_error}")
+            except Exception as e:
+                last_error = e
+                err_str = str(e).lower()
+                print(f"[Gemini] Key #{i+1}, Model {model_name} failed: {type(e).__name__} - {str(e)[:80]}")
+                
+                # If 404 Not Found, try the next model. Otherwise (like API key invalid), try next key.
+                if "404" in err_str or "not found" in err_str:
+                    continue
+                break # Break model loop, try next key
+
+    raise RuntimeError(f"All Gemini keys/models failed. Last: {last_error}")
 
 
 # ─── Groq Setup ───────────────────────────────────────────────────────────────
 
-GROQ_MODEL = "llama-4-maverick-17b-128e-instruct"       # ✅ Latest Llama 4 for complex tasks
-GROQ_FAST_MODEL = "llama-4-scout-17b-16e-instruct"      # ✅ Latest Llama 4 for fast responses
+GROQ_MODEL = "mixtral-8x7b-32768"       # ✅ Stable, free tier universally has access
+GROQ_FAST_MODEL = "mixtral-8x7b-32768"  # ✅ Use same model to avoid any access issues
 
 
 def _get_groq_keys():
@@ -365,14 +369,27 @@ def call_ai_chat(messages_history, system_instruction=None, max_tokens=1024, tem
         if system_instruction:
             config = types.GenerateContentConfig(system_instruction=system_instruction)
 
-        resp = client.models.generate_content(
-            model=GEMINI_MODEL,
-            contents=formatted,
-            config=config,
-        )
-        text = resp.text.strip()
-        print("[AI Chat] Used: Gemini ✓")
-        return text
+        models_to_try = ["gemini-1.5-flash-8b", "gemini-1.5-flash", "gemini-1.5-flash-latest", "gemini-pro"]
+        success_text = None
+        
+        for model_name in models_to_try:
+            try:
+                resp = client.models.generate_content(
+                    model=model_name,
+                    contents=formatted,
+                    config=config,
+                )
+                success_text = resp.text.strip()
+                print(f"[AI Chat] Used: Gemini ({model_name}) ✓")
+                break
+            except Exception as e:
+                if "404" in str(e) or "not found" in str(e).lower():
+                    continue
+                raise e
+                
+        if success_text:
+            return success_text
+        raise RuntimeError("All Gemini chat models returned 404.")
 
     except Exception as gemini_err:
         print(f"[AI Chat] Gemini failed ({type(gemini_err).__name__}), switching to Groq...")
