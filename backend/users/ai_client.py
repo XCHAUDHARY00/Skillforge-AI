@@ -83,8 +83,8 @@ def _call_gemini(prompt, system_instruction=None):
 
 # ─── Groq Setup ───────────────────────────────────────────────────────────────
 
-GROQ_MODEL = "llama-3.3-70b-versatile"      # ✅ Fixed: high quality, reliable Groq model
-GROQ_FAST_MODEL = "llama-3.1-8b-instant"    # ✅ Fixed: fastest Groq model for quick responses
+GROQ_MODEL = "llama3-70b-8192"       # ✅ Groq Llama 3 70B — stable, widely available
+GROQ_FAST_MODEL = "llama3-8b-8192"   # ✅ Groq Llama 3 8B — fast, universally available
 
 
 def _get_groq_keys():

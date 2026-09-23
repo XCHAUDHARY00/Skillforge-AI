@@ -22,8 +22,8 @@ def _get_api_keys():
     return keys
 
 
-DEFAULT_MODEL = "llama-3.3-70b-versatile"   # ✅ Fixed: high quality, reliable model
-FAST_MODEL = "llama-3.1-8b-instant"         # ✅ Fixed: fastest model for quick calls
+DEFAULT_MODEL = "llama3-70b-8192"   # ✅ Stable: Llama 3 70B, works on all Groq accounts
+FAST_MODEL = "llama3-8b-8192"       # ✅ Stable: Llama 3 8B, fast + universally available
 
 
 def call_groq(
