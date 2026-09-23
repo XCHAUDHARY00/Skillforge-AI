@@ -21,8 +21,8 @@ def _get_api_keys():
         raise ValueError("No GROQ_API_KEY found! Please set it in environment variables.")
     return keys
 
-DEFAULT_MODEL = "mixtral-8x7b-32768"   # ✅ Stable, universally available
-FAST_MODEL = "gemma2-9b-it"          # ✅ Fast, widely available
+DEFAULT_MODEL = "llama-4-maverick-17b-128e-instruct"   # ✅ Stable, universally available
+FAST_MODEL = "llama-4-scout-17b-16e-instruct"          # ✅ Fast, widely available
 
 
 def call_groq(

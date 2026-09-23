@@ -83,8 +83,8 @@ def _call_gemini(prompt, system_instruction=None):
 
 # ─── Groq Setup ───────────────────────────────────────────────────────────────
 
-GROQ_MODEL = "mixtral-8x7b-32768"       # ✅ Universally available, supports JSON
-GROQ_FAST_MODEL = "gemma2-9b-it"        # ✅ Fast, widely available
+GROQ_MODEL = "llama-4-maverick-17b-128e-instruct"       # ✅ Latest Llama 4 for complex tasks
+GROQ_FAST_MODEL = "llama-4-scout-17b-16e-instruct"      # ✅ Latest Llama 4 for fast responses
 
 
 def _get_groq_keys():
@@ -234,8 +234,9 @@ def call_ai(prompt, system_instruction=None, max_tokens=2048, temperature=0.7):
         return text
     except Exception as groq_err:
         raise RuntimeError(
-            f"Both Gemini and Groq failed. "
-            f"Gemini error logged above | Groq: {groq_err}"
+            f"Both Gemini and Groq failed.\n"
+            f"Gemini Error: {gemini_err}\n"
+            f"Groq Error: {groq_err}"
         )
 
 
@@ -270,8 +271,9 @@ def call_ai_json(prompt, system_instruction=None, max_tokens=2048, temperature=0
         return parsed
     except Exception as groq_err:
         raise RuntimeError(
-            f"Both Gemini and Groq failed for JSON. "
-            f"Last Groq error: {groq_err}"
+            f"Both Gemini and Groq failed for JSON.\n"
+            f"Gemini Error: {gemini_err}\n"
+            f"Groq Error: {groq_err}"
         )
 
 
