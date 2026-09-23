@@ -37,13 +37,15 @@ def _get_gemini_keys():
 
 def _call_gemini(prompt, system_instruction=None):
     """
-    Gemini API call karta hai with timeout via threading.
+    Gemini API call karta hai.
     Success → text return karta hai
     Fail → Exception raise karta hai (taaki Groq try ho sake)
+    
+    NOTE: Threading removed — Vercel serverless mein threading limited hai.
+    Direct synchronous call use karte hain with simple try/except.
     """
     from google import genai
     from google.genai import types
-    import threading
 
     keys = _get_gemini_keys()
     if not keys:
@@ -60,35 +62,16 @@ def _call_gemini(prompt, system_instruction=None):
                     system_instruction=system_instruction,
                 )
 
-            result = [None]
-            error = [None]
+            resp = client.models.generate_content(
+                model=GEMINI_MODEL,
+                contents=prompt,
+                config=config,
+            )
+            text = resp.text.strip()
 
-            def _do_call():
-                try:
-                    resp = client.models.generate_content(
-                        model=GEMINI_MODEL,
-                        contents=prompt,
-                        config=config,
-                    )
-                    result[0] = resp.text.strip()
-                except Exception as e:
-                    error[0] = e
-
-            thread = threading.Thread(target=_do_call)
-            thread.daemon = True
-            thread.start()
-            thread.join(timeout=GEMINI_TIMEOUT)
-
-            if thread.is_alive():
-                raise TimeoutError(f"Gemini timed out after {GEMINI_TIMEOUT}s")
-
-            if error[0]:
-                raise error[0]
-
-            if result[0] is not None:
-                if i > 0:
-                    print(f"[Gemini Failover] Key #{i+1} succeeded.")
-                return result[0]
+            if i > 0:
+                print(f"[Gemini Failover] Key #{i+1} succeeded.")
+            return text
 
         except Exception as e:
             last_error = e
@@ -297,10 +280,11 @@ def call_ai_chat(messages_history, system_instruction=None, max_tokens=1024, tem
     """
     Chat history ke saath call — Career Coach ke liye.
     Gemini first → Groq fallback.
+    
+    NOTE: Threading removed for Vercel serverless compatibility.
     """
     from google import genai
     from google.genai import types
-    import threading
 
     # Step 1: Gemini try karo with history
     try:
@@ -320,34 +304,14 @@ def call_ai_chat(messages_history, system_instruction=None, max_tokens=1024, tem
         if system_instruction:
             config = types.GenerateContentConfig(system_instruction=system_instruction)
 
-        result = [None]
-        error = [None]
-
-        def _do_call():
-            try:
-                resp = client.models.generate_content(
-                    model=GEMINI_MODEL,
-                    contents=formatted,
-                    config=config,
-                )
-                result[0] = resp.text.strip()
-            except Exception as e:
-                error[0] = e
-
-        thread = threading.Thread(target=_do_call)
-        thread.daemon = True
-        thread.start()
-        thread.join(timeout=GEMINI_TIMEOUT)
-
-        if thread.is_alive():
-            raise TimeoutError(f"Gemini chat timed out after {GEMINI_TIMEOUT}s")
-
-        if error[0]:
-            raise error[0]
-
-        if result[0]:
-            print("[AI Chat] Used: Gemini ✓")
-            return result[0]
+        resp = client.models.generate_content(
+            model=GEMINI_MODEL,
+            contents=formatted,
+            config=config,
+        )
+        text = resp.text.strip()
+        print("[AI Chat] Used: Gemini ✓")
+        return text
 
     except Exception as gemini_err:
         print(f"[AI Chat] Gemini failed ({type(gemini_err).__name__}), switching to Groq...")
