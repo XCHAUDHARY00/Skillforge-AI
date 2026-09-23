@@ -56,16 +56,36 @@ const AIAssistant = () => {
     setMessages(prev => [...prev, userMsg]);
     setLoading(true);
 
+    // ✅ 6s baad "waking up" message dikhao (Render cold start handle)
+    const slowTimer = setTimeout(() => {
+      setMessages(prev => [...prev, {
+        id: Date.now() + 0.5,
+        sender: 'ai',
+        text: '⏳ Server is waking up... please wait a moment.',
+        isTemp: true,
+      }]);
+    }, 6000);
+
     try {
       const response = await api.post('/chat/send/', { message: msgText });
+      clearTimeout(slowTimer);
+
+      // Remove temp "waking up" message if it was added
+      setMessages(prev => prev.filter(m => !m.isTemp));
+
       if (response.data.status === 'success') {
         const aiMsg = { id: Date.now() + 1, sender: 'ai', text: response.data.data.response };
         setMessages(prev => [...prev, aiMsg]);
       } else {
         setMessages(prev => [...prev, { id: Date.now() + 1, sender: 'ai', text: "I'm having trouble right now. Please try again." }]);
       }
-    } catch {
-      setMessages(prev => [...prev, { id: Date.now() + 1, sender: 'ai', text: "Connection issue. Check if your backend is running." }]);
+    } catch (err) {
+      clearTimeout(slowTimer);
+      setMessages(prev => prev.filter(m => !m.isTemp));
+      const errText = err.code === 'ECONNABORTED'
+        ? '⏱️ Request timed out. Try again in 30 seconds!'
+        : "Sorry, I couldn't connect. Please try again shortly.";
+      setMessages(prev => [...prev, { id: Date.now() + 1, sender: 'ai', text: errText }]);
     } finally {
       setLoading(false);
     }
