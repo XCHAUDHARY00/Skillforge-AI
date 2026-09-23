@@ -19,7 +19,7 @@ import time
 
 # ─── Gemini Setup ──────────────────────────────────────────────────────────────
 
-GEMINI_MODEL = "gemini-2.0-flash"   # ✅ Fixed: correct active Gemini model
+GEMINI_MODEL = "gemini-1.5-flash"   # ✅ Fixed: 2.0-flash was giving 404, using stable 1.5-flash
 GEMINI_TIMEOUT = 25  # seconds — increased: 15s was too low, now 25s before Groq switch
 
 def _get_gemini_keys():
@@ -83,8 +83,8 @@ def _call_gemini(prompt, system_instruction=None):
 
 # ─── Groq Setup ───────────────────────────────────────────────────────────────
 
-GROQ_MODEL = "llama3-70b-8192"       # ✅ Groq Llama 3 70B — stable, widely available
-GROQ_FAST_MODEL = "llama3-8b-8192"   # ✅ Groq Llama 3 8B — fast, universally available
+GROQ_MODEL = "mixtral-8x7b-32768"       # ✅ Universally available, supports JSON
+GROQ_FAST_MODEL = "gemma2-9b-it"        # ✅ Fast, widely available
 
 
 def _get_groq_keys():

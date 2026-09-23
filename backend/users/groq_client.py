@@ -21,9 +21,8 @@ def _get_api_keys():
         raise ValueError("No GROQ_API_KEY found! Please set it in environment variables.")
     return keys
 
-
-DEFAULT_MODEL = "llama3-70b-8192"   # ✅ Stable: Llama 3 70B, works on all Groq accounts
-FAST_MODEL = "llama3-8b-8192"       # ✅ Stable: Llama 3 8B, fast + universally available
+DEFAULT_MODEL = "mixtral-8x7b-32768"   # ✅ Stable, universally available
+FAST_MODEL = "gemma2-9b-it"          # ✅ Fast, widely available
 
 
 def call_groq(
