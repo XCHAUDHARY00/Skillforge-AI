@@ -215,12 +215,14 @@ def call_ai(prompt, system_instruction=None, max_tokens=2048, temperature=0.7):
       Gemini → (fail) → Groq key 1 → (fail) → Groq key 2 → ...
     """
     # Step 1: Gemini try karo
+    gemini_error_msg = None
     try:
         text = _call_gemini(prompt, system_instruction=system_instruction)
         print("[AI] Used: Gemini ✓")
         return text
-    except Exception as gemini_err:
-        print(f"[AI] Gemini failed ({type(gemini_err).__name__}), switching to Groq...")
+    except Exception as e:
+        gemini_error_msg = f"{type(e).__name__}: {str(e)}"
+        print(f"[AI] Gemini failed ({gemini_error_msg}), switching to Groq...")
 
     # Step 2: Groq fallback
     try:
@@ -235,7 +237,7 @@ def call_ai(prompt, system_instruction=None, max_tokens=2048, temperature=0.7):
     except Exception as groq_err:
         raise RuntimeError(
             f"Both Gemini and Groq failed.\n"
-            f"Gemini Error: {gemini_err}\n"
+            f"Gemini Error: {gemini_error_msg}\n"
             f"Groq Error: {groq_err}"
         )
 
@@ -246,6 +248,7 @@ def call_ai_json(prompt, system_instruction=None, max_tokens=2048, temperature=0
     Automatically parse karke dict return karta hai.
     """
     # Step 1: Gemini try karo
+    gemini_error_msg = None
     try:
         text = _call_gemini(prompt, system_instruction=system_instruction)
         cleaned = clean_json_response(text)
@@ -253,9 +256,11 @@ def call_ai_json(prompt, system_instruction=None, max_tokens=2048, temperature=0
         print("[AI JSON] Used: Gemini ✓")
         return parsed
     except json.JSONDecodeError as je:
+        gemini_error_msg = f"JSONDecodeError: {str(je)}"
         print(f"[AI JSON] Gemini returned invalid JSON ({je}), switching to Groq...")
-    except Exception as gemini_err:
-        print(f"[AI JSON] Gemini failed ({type(gemini_err).__name__}), switching to Groq...")
+    except Exception as e:
+        gemini_error_msg = f"{type(e).__name__}: {str(e)}"
+        print(f"[AI JSON] Gemini failed ({type(e).__name__}), switching to Groq...")
 
     # Step 2: Groq fallback (JSON mode)
     try:
@@ -272,7 +277,7 @@ def call_ai_json(prompt, system_instruction=None, max_tokens=2048, temperature=0
     except Exception as groq_err:
         raise RuntimeError(
             f"Both Gemini and Groq failed for JSON.\n"
-            f"Gemini Error: {gemini_err}\n"
+            f"Gemini Error: {gemini_error_msg}\n"
             f"Groq Error: {groq_err}"
         )
 
