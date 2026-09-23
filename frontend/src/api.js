@@ -5,6 +5,7 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://skillforge-m3
 
 const api = axios.create({
     baseURL: API_BASE_URL,
+    timeout: 90000, // ✅ 90 seconds — Render.com cold start + AI response time handle karta hai
 });
 
 // Request Interceptor: API call bhejne se pehle ye chalega
@@ -23,13 +24,25 @@ api.interceptors.request.use(
     }
 );
 
-// Response Interceptor: 401 error aane par auto token refresh
+// Response Interceptor: 401 error aane par auto token refresh + network retry
 api.interceptors.response.use(
     (response) => {
         return response;
     },
     async (error) => {
         const originalRequest = error.config;
+
+        // ✅ Network error ya timeout pe ek baar retry karo (Render.com cold start fix)
+        if (
+            !originalRequest._retried &&
+            (error.code === 'ECONNABORTED' || error.code === 'ERR_NETWORK' || !error.response)
+        ) {
+            originalRequest._retried = true;
+            console.warn('[API] Network issue, retrying once...', error.code);
+            // Thoda wait karo phir retry
+            await new Promise(res => setTimeout(res, 2000));
+            return api(originalRequest);
+        }
 
         // Agar response status 401 hai aur ye retry request nahi hai
         if (
@@ -48,6 +61,7 @@ api.interceptors.response.use(
                     // clean instance context-wise for refresh call to avoid loop
                     const refreshInstance = axios.create({
                         baseURL: API_BASE_URL,
+                        timeout: 15000,
                     });
                     
                     const response = await refreshInstance.post('/token/refresh/', {
@@ -78,4 +92,3 @@ api.interceptors.response.use(
 );
 
 export default api;
-

@@ -22,8 +22,8 @@ def _get_api_keys():
     return keys
 
 
-DEFAULT_MODEL = "qwen/qwen3.8-27b"
-FAST_MODEL = "qwen/qwen3.6-27b"
+DEFAULT_MODEL = "llama-3.3-70b-versatile"   # ✅ Fixed: high quality, reliable model
+FAST_MODEL = "llama-3.1-8b-instant"         # ✅ Fixed: fastest model for quick calls
 
 
 def call_groq(
@@ -46,7 +46,7 @@ def call_groq(
         try:
             client = Groq(api_key=api_key)
             kwargs = {
-                "model": model,
+                "model": FAST_MODEL,   # Fast model for speed
                 "messages": messages,
                 "temperature": temperature,
                 "max_tokens": max_tokens,
@@ -90,7 +90,7 @@ def call_groq_with_history(
         try:
             client = Groq(api_key=api_key)
             response = client.chat.completions.create(
-                model=model,
+                model=DEFAULT_MODEL,   # Full model for chat
                 messages=messages,
                 temperature=temperature,
                 max_tokens=max_tokens,

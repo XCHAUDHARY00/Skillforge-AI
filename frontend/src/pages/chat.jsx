@@ -46,16 +46,28 @@ function Chat() {
     setLoading(true);
     setError(null);
 
+    // ✅ Agar 6 seconds mein response nahi aaya → user ko helpful message dikhao
+    const slowTimer = setTimeout(() => {
+      setError('⏳ Server waking up (Render free tier)... Please wait ~30 seconds.');
+    }, 6000);
+
     try {
       const response = await api.post('/chat/send/', { message: msgText });
+      clearTimeout(slowTimer);
+      setError(null); // Clear the "waking up" message on success
       if (response.data.status === 'success') {
         const aiReply = { id: Date.now() + 1, sender: 'ai', message: response.data.data.response, timestamp: new Date().toISOString() };
         setMessages(prev => [...prev, aiReply]);
       } else {
         setError(response.data.message || "Something went wrong.");
       }
-    } catch {
-      setError("Failed to get response from AI Coach.");
+    } catch (err) {
+      clearTimeout(slowTimer);
+      if (err.code === 'ECONNABORTED') {
+        setError("⏱️ Request timed out. The server may be sleeping. Try again in 30 seconds!");
+      } else {
+        setError("Failed to get response from AI Coach. Please try again.");
+      }
     } finally {
       setLoading(false);
     }

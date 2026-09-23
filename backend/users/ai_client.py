@@ -19,8 +19,8 @@ import time
 
 # ─── Gemini Setup ──────────────────────────────────────────────────────────────
 
-GEMINI_MODEL = "gemini-3.6-flash"   # Current active Gemini model
-GEMINI_TIMEOUT = 15  # seconds — agar 15s mein reply nahi → Groq pe switch
+GEMINI_MODEL = "gemini-2.0-flash"   # ✅ Fixed: correct active Gemini model
+GEMINI_TIMEOUT = 25  # seconds — increased: 15s was too low, now 25s before Groq switch
 
 def _get_gemini_keys():
     """Gemini API keys collect karta hai env se."""
@@ -100,8 +100,8 @@ def _call_gemini(prompt, system_instruction=None):
 
 # ─── Groq Setup ───────────────────────────────────────────────────────────────
 
-GROQ_MODEL = "qwen/qwen3.8-27b"
-GROQ_FAST_MODEL = "qwen/qwen3.6-27b"
+GROQ_MODEL = "llama-3.3-70b-versatile"      # ✅ Fixed: high quality, reliable Groq model
+GROQ_FAST_MODEL = "llama-3.1-8b-instant"    # ✅ Fixed: fastest Groq model for quick responses
 
 
 def _get_groq_keys():
@@ -145,7 +145,7 @@ def _call_groq(prompt, system_instruction=None, is_json=False, max_tokens=2048, 
         try:
             client = Groq(api_key=api_key)
             kwargs = {
-                "model": GROQ_MODEL,
+                "model": GROQ_FAST_MODEL,   # Fast model for speed
                 "messages": messages,
                 "temperature": temperature,
                 "max_tokens": max_tokens,
@@ -190,7 +190,7 @@ def _call_groq_with_history(messages_history, system_instruction=None, max_token
         try:
             client = Groq(api_key=api_key)
             resp = client.chat.completions.create(
-                model=GROQ_MODEL,
+                model=GROQ_MODEL,   # Full model for chat quality
                 messages=messages,
                 temperature=temperature,
                 max_tokens=max_tokens,
