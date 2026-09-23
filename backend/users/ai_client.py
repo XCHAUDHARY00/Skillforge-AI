@@ -82,6 +82,15 @@ def _call_gemini(prompt, system_instruction=None):
                     continue
                 break # Break model loop, try next key
 
+        # If we got here, all models failed for this key. Let's find out what models ARE available.
+        try:
+            import requests
+            r = requests.get(f"https://generativelanguage.googleapis.com/v1beta/models?key={api_key}")
+            available = [m.get('name') for m in r.json().get('models', [])]
+            last_error = Exception(f"404 Not Found. Available models for your key: {available[:10]}")
+        except Exception as e:
+            pass
+
     raise RuntimeError(f"All Gemini keys/models failed. Last: {last_error}")
 
 
@@ -389,7 +398,14 @@ def call_ai_chat(messages_history, system_instruction=None, max_tokens=1024, tem
                 
         if success_text:
             return success_text
-        raise RuntimeError("All Gemini chat models returned 404.")
+            
+        try:
+            import requests
+            r = requests.get(f"https://generativelanguage.googleapis.com/v1beta/models?key={gemini_keys[0]}")
+            available = [m.get('name') for m in r.json().get('models', [])]
+            raise RuntimeError(f"All chat models 404. Available on your key: {available[:10]}")
+        except Exception:
+            raise RuntimeError("All Gemini chat models returned 404.")
 
     except Exception as gemini_err:
         print(f"[AI Chat] Gemini failed ({type(gemini_err).__name__}), switching to Groq...")
