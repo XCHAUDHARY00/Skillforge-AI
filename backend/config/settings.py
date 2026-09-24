@@ -30,7 +30,7 @@ load_dotenv(os.path.join(BASE_DIR, '.env'))
 SECRET_KEY = 'django-insecure-1b2m*+i4w_37n4!#fl9shaui-+s!ir)(z-2&6ptm*g1gmz@zc4'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.getenv('DEBUG', 'False').lower() == 'true'
 
 ALLOWED_HOSTS = ['*', '.onrender.com', 'localhost', '127.0.0.1']
 

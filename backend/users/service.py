@@ -34,7 +34,7 @@ Return ONLY this JSON (6 steps, be concise):
 {{"roadmap":[{{"step":1,"title":"Title","description":"Brief desc.","estimated_time":"2 weeks","resources":["Resource 1"]}}]}}"""
 
     try:
-        result = call_ai_json(prompt, system_instruction=system_instruction, max_tokens=900)
+        result = call_ai_json(prompt, system_instruction=system_instruction, max_tokens=600)
         return result
     except Exception as e:
         print("Roadmap Error:", str(e))
@@ -54,7 +54,7 @@ def interact_with_career_coach(user_profile, new_message):
     # ✅ Only last 8 messages (speed optimization — less tokens = faster)
     chat_history_qs = ChatMessage.objects.filter(
         user_profile=user_profile
-    ).order_by('-timestamp')[:8]
+    ).order_by('-timestamp')[:5]
 
     # Reverse to get chronological order
     formatted_history = []
@@ -82,7 +82,7 @@ def interact_with_career_coach(user_profile, new_message):
         ai_response_text = call_ai_fast_chat(
             formatted_history,
             system_instruction=system_instruction,
-            max_tokens=512,
+            max_tokens=300,
             temperature=0.7,
         )
 
@@ -118,7 +118,7 @@ Return ONLY this JSON format:
 {{"radar_data":[{{"subject":"Backend","score":8}},{{"subject":"Frontend","score":4}},{{"subject":"AI/ML","score":3}},{{"subject":"DevOps","score":2}},{{"subject":"Databases","score":7}},{{"subject":"System Design","score":3}}],"career_paths":[{{"role":"Backend Developer","match":86,"icon":"⚙️","color":"#6366f1"}},{{"role":"Full Stack","match":65,"icon":"🖥️","color":"#3b82f6"}},{{"role":"AI Engineer","match":45,"icon":"🤖","color":"#8b5cf6"}}],"personality_tags":["Builder","Analytical","Problem Solver"],"strengths":["Python","Django"],"growth_areas":["Docker","React"],"readiness_score":72,"ai_summary":"2 sentence analysis here."}}"""
 
     try:
-        result = call_ai_json(prompt, system_instruction=system_instruction, max_tokens=800)
+        result = call_ai_json(prompt, system_instruction=system_instruction, max_tokens=500)
         return result
     except Exception as e:
         print("Career DNA Error:", str(e))
@@ -145,7 +145,7 @@ Return ONLY this JSON (exactly 6 skills):
 Rules: gap>=5=high, gap 3-4=medium, gap<=2=low. overall_gap_score 0-100 (higher=more ready)."""
 
     try:
-        result = call_ai_json(prompt, system_instruction=system_instruction, max_tokens=700)
+        result = call_ai_json(prompt, system_instruction=system_instruction, max_tokens=500)
         return result
     except Exception as e:
         print("Skill Gap Error:", str(e))
