@@ -19,7 +19,8 @@ import time
 
 # ─── Gemini Setup ──────────────────────────────────────────────────────────────
 
-GEMINI_MODEL = "gemini-1.5-flash-8b"   # Trying the lightweight flash model, or fallback to gemini-pro if needed
+GEMINI_MODEL = "gemini-2.0-flash-lite"   # Primary model
+GEMINI_MODELS_FALLBACK = ["gemini-2.0-flash-lite", "gemini-2.0-flash", "gemini-1.5-flash", "gemini-1.5-flash-8b", "gemini-pro"]
 GEMINI_TIMEOUT = 25
 
 def _get_gemini_keys():
@@ -48,7 +49,7 @@ def _call_gemini(prompt, system_instruction=None):
     if not keys:
         raise ValueError("No GEMINI_API_KEY found in environment")
 
-    models_to_try = ["gemini-1.5-flash-8b", "gemini-1.5-flash", "gemini-1.5-flash-latest", "gemini-pro"]
+    models_to_try = GEMINI_MODELS_FALLBACK
     last_error = None
 
     for i, api_key in enumerate(keys):
@@ -96,8 +97,18 @@ def _call_gemini(prompt, system_instruction=None):
 
 # ─── Groq Setup ───────────────────────────────────────────────────────────────
 
-GROQ_MODEL = "mixtral-8x7b-32768"       # ✅ Stable, free tier universally has access
-GROQ_FAST_MODEL = "mixtral-8x7b-32768"  # ✅ Use same model to avoid any access issues
+# Try these models in order — if one is decommissioned, next one runs automatically
+GROQ_MODELS_FALLBACK = [
+    "llama-3.3-70b-versatile",
+    "llama-3.1-8b-instant",
+    "llama3-70b-8192",
+    "llama3-8b-8192",
+    "llama-4-scout-17b-16e-instruct",
+    "gemma2-9b-it",
+    "mixtral-8x7b-32768",
+]
+GROQ_MODEL = GROQ_MODELS_FALLBACK[0]
+GROQ_FAST_MODEL = GROQ_MODELS_FALLBACK[0]
 
 
 def _get_groq_keys():
@@ -138,32 +149,45 @@ def _call_groq(prompt, system_instruction=None, is_json=False, max_tokens=2048, 
 
     last_error = None
     for i, api_key in enumerate(keys):
-        try:
-            client = Groq(api_key=api_key)
-            kwargs = {
-                "model": GROQ_FAST_MODEL,   # Fast model for speed
-                "messages": messages,
-                "temperature": temperature,
-                "max_tokens": max_tokens,
-            }
-            if is_json:
-                kwargs["response_format"] = {"type": "json_object"}
+        for model_name in GROQ_MODELS_FALLBACK:
+            try:
+                client = Groq(api_key=api_key)
+                kwargs = {
+                    "model": model_name,
+                    "messages": messages,
+                    "temperature": temperature,
+                    "max_tokens": max_tokens,
+                }
+                if is_json:
+                    kwargs["response_format"] = {"type": "json_object"}
 
-            resp = client.chat.completions.create(**kwargs)
-            text = resp.choices[0].message.content.strip()
+                resp = client.chat.completions.create(**kwargs)
+                text = resp.choices[0].message.content.strip()
 
-            if i > 0:
-                print(f"[Groq Failover] Key #{i+1} succeeded.")
-            return text
+                print(f"[Groq] Key #{i+1}, Model {model_name} ✓")
+                return text
 
-        except Exception as e:
-            last_error = e
-            print(f"[Groq] Key #{i+1} failed: {type(e).__name__}: {str(e)[:100]}")
-            if "rate_limit" in str(e).lower() or "429" in str(e):
-                time.sleep(0.5)
-            continue
+            except Exception as e:
+                last_error = e
+                err_str = str(e).lower()
+                print(f"[Groq] Key #{i+1}, Model {model_name} failed: {str(e)[:80]}")
+                # If model decommissioned or not found, try next model
+                if "decommissioned" in err_str or "not found" in err_str or "does not exist" in err_str or "404" in err_str:
+                    continue
+                if "rate_limit" in err_str or "429" in str(e):
+                    time.sleep(0.5)
+                break  # Try next key for other errors
 
-    raise RuntimeError(f"All Groq keys failed. Last: {last_error}")
+    # Auto-discover available models as last resort
+    try:
+        import requests
+        r = requests.get("https://api.groq.com/openai/v1/models", headers={"Authorization": f"Bearer {keys[0]}"})
+        available = [m['id'] for m in r.json().get('data', []) if 'whisper' not in m['id'] and 'guard' not in m['id'] and 'tts' not in m['id']]
+        raise RuntimeError(f"All Groq keys/models failed. Available models on your key: {available[:8]}. Last error: {last_error}")
+    except RuntimeError:
+        raise
+    except Exception:
+        raise RuntimeError(f"All Groq keys failed. Last: {last_error}")
 
 
 def _call_groq_with_history(messages_history, system_instruction=None, max_tokens=1024, temperature=0.8):
@@ -183,24 +207,27 @@ def _call_groq_with_history(messages_history, system_instruction=None, max_token
 
     last_error = None
     for i, api_key in enumerate(keys):
-        try:
-            client = Groq(api_key=api_key)
-            resp = client.chat.completions.create(
-                model=GROQ_MODEL,   # Full model for chat quality
-                messages=messages,
-                temperature=temperature,
-                max_tokens=max_tokens,
-            )
-            text = resp.choices[0].message.content.strip()
-            if i > 0:
-                print(f"[Groq Failover] Chat Key #{i+1} succeeded.")
-            return text
-        except Exception as e:
-            last_error = e
-            print(f"[Groq] Chat Key #{i+1} failed: {str(e)[:100]}")
-            if "rate_limit" in str(e).lower() or "429" in str(e):
-                time.sleep(0.5)
-            continue
+        for model_name in GROQ_MODELS_FALLBACK:
+            try:
+                client = Groq(api_key=api_key)
+                resp = client.chat.completions.create(
+                    model=model_name,
+                    messages=messages,
+                    temperature=temperature,
+                    max_tokens=max_tokens,
+                )
+                text = resp.choices[0].message.content.strip()
+                print(f"[Groq Chat] Key #{i+1}, Model {model_name} ✓")
+                return text
+            except Exception as e:
+                last_error = e
+                err_str = str(e).lower()
+                print(f"[Groq Chat] Key #{i+1}, Model {model_name} failed: {str(e)[:80]}")
+                if "decommissioned" in err_str or "not found" in err_str or "does not exist" in err_str or "404" in err_str:
+                    continue
+                if "rate_limit" in err_str or "429" in str(e):
+                    time.sleep(0.5)
+                break
 
     raise RuntimeError(f"All Groq keys failed for chat. Last: {last_error}")
 
@@ -378,7 +405,7 @@ def call_ai_chat(messages_history, system_instruction=None, max_tokens=1024, tem
         if system_instruction:
             config = types.GenerateContentConfig(system_instruction=system_instruction)
 
-        models_to_try = ["gemini-1.5-flash-8b", "gemini-1.5-flash", "gemini-1.5-flash-latest", "gemini-pro"]
+        models_to_try = GEMINI_MODELS_FALLBACK
         success_text = None
         
         for model_name in models_to_try:
