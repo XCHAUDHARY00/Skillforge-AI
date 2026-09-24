@@ -19,8 +19,8 @@ import time
 
 # ─── Gemini Setup ──────────────────────────────────────────────────────────────
 
-GEMINI_MODEL = "gemini-2.0-flash-lite"   # Primary model
-GEMINI_MODELS_FALLBACK = ["gemini-2.0-flash-lite", "gemini-2.0-flash", "gemini-1.5-flash", "gemini-1.5-flash-8b", "gemini-pro"]
+GEMINI_MODEL = "gemini-2.5-flash"   # ✅ CONFIRMED working via API test
+GEMINI_MODELS_FALLBACK = ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-2.5-pro", "gemini-3.5-flash", "gemini-3.5-flash-lite"]
 GEMINI_TIMEOUT = 25
 
 def _get_gemini_keys():
@@ -97,15 +97,12 @@ def _call_gemini(prompt, system_instruction=None):
 
 # ─── Groq Setup ───────────────────────────────────────────────────────────────
 
-# Try these models in order — if one is decommissioned, next one runs automatically
+# Try these models in order — CONFIRMED available via API test on 2026-09-24
 GROQ_MODELS_FALLBACK = [
-    "llama-3.3-70b-versatile",
-    "llama-3.1-8b-instant",
-    "llama3-70b-8192",
-    "llama3-8b-8192",
-    "llama-4-scout-17b-16e-instruct",
-    "gemma2-9b-it",
-    "mixtral-8x7b-32768",
+    "qwen/qwen3.8-27b",          # ✅ Best: 27B params, fast, smart
+    "openai/gpt-oss-20b",        # ✅ Medium: 20B, good quality
+    "openai/gpt-oss-120b",       # ✅ Large: 120B, slower but powerful
+    "allam-2-7b",                # ✅ Small: 7B, last resort
 ]
 GROQ_MODEL = GROQ_MODELS_FALLBACK[0]
 GROQ_FAST_MODEL = GROQ_MODELS_FALLBACK[0]

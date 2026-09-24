@@ -11,15 +11,12 @@ import time
 from groq import Groq
 
 
-# Models to try in order — if one is decommissioned, next one runs automatically
+# Models CONFIRMED available via API test on 2026-09-24
 MODELS_FALLBACK = [
-    "llama-3.3-70b-versatile",
-    "llama-3.1-8b-instant",
-    "llama3-70b-8192",
-    "llama3-8b-8192",
-    "llama-4-scout-17b-16e-instruct",
-    "gemma2-9b-it",
-    "mixtral-8x7b-32768",
+    "qwen/qwen3.8-27b",          # ✅ Best: 27B params, fast, smart
+    "openai/gpt-oss-20b",        # ✅ Medium: 20B, good quality
+    "openai/gpt-oss-120b",       # ✅ Large: 120B, slower but powerful
+    "allam-2-7b",                # ✅ Small: 7B, last resort
 ]
 
 DEFAULT_MODEL = MODELS_FALLBACK[0]
