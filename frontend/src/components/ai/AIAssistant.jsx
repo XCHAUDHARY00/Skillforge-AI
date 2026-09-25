@@ -46,7 +46,14 @@ const AIAssistant = () => {
   const speakText = (text) => {
     if (!('speechSynthesis' in window)) return;
     window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(text);
+    
+    // Remove markdown symbols and emojis for clean speech
+    const cleanText = text
+      .replace(/[*_#`~]/g, '') // Remove basic markdown characters
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // Convert links [text](url) to just text
+      .replace(/([\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF])/g, ''); // Remove emojis
+
+    const utterance = new SpeechSynthesisUtterance(cleanText);
     const voices = window.speechSynthesis.getVoices();
     const preferredVoice = voices.find(v => 
       v.name.includes('Google') || 
