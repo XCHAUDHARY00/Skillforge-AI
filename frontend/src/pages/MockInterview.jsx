@@ -59,6 +59,45 @@ const MockInterview = () => {
 
   useEffect(() => { fetchLastInterview(); }, []);
 
+  const speakText = (text) => {
+    if (!('speechSynthesis' in window)) return;
+    window.speechSynthesis.cancel(); // Stop any currently playing speech
+    
+    const utterance = new SpeechSynthesisUtterance(text);
+    const voices = window.speechSynthesis.getVoices();
+    
+    // Try to find a professional voice
+    const preferredVoice = voices.find(v => 
+      v.name.includes('Google') || 
+      v.name.includes('Samantha') || 
+      v.name.includes('Zira') || 
+      v.name.includes('Fiona')
+    ) || voices.find(v => v.lang.startsWith('en'));
+    
+    if (preferredVoice) {
+      utterance.voice = preferredVoice;
+    }
+    
+    utterance.rate = 0.95; // slightly slower for better comprehension
+    utterance.pitch = 1.0;
+    window.speechSynthesis.speak(utterance);
+  };
+
+  useEffect(() => {
+    // When the phase is active and a new question comes in, read it aloud.
+    if (phase === 'active' && currentQuestionText) {
+      // Small timeout to ensure voices are loaded on some browsers
+      setTimeout(() => speakText(currentQuestionText), 100);
+    }
+    
+    // Cleanup: stop speaking if we leave the interview phase or unmount
+    return () => {
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+      }
+    };
+  }, [currentQuestionText, phase]);
+
   // Use a ref to hold the latest handleNextQuestion so the interval callback
   // never captures a stale closure.
   const handleNextQuestionRef = useRef(null);
