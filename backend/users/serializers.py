@@ -15,7 +15,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'user', 'experience', 'bio', 'skills',
             'user_educations', 'user_career_goals',
-            'github_username', 'linkedin_url', 'avatar_url',
+            'github_username', 'linkedin_url',
             'github_data', 'resume_filename', 'resume_analysis',
             'skill_gaps_data', 'career_dna_data', 'roadmap_data',
             'career_xp', 'streak', 'readiness_score',

@@ -21,7 +21,6 @@ class UserProfile(models.Model):
     # Social Links
     github_username = models.CharField(max_length=100, blank=True, null=True)
     linkedin_url = models.URLField(max_length=300, blank=True, null=True)
-    avatar_url = models.CharField(max_length=500, blank=True, null=True)
     
     # AI Cached Data
     career_dna_data = models.JSONField(null=True, blank=True)
