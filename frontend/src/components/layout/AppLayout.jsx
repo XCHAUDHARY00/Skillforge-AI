@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -156,6 +156,18 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
   const { logout, user } = useAuth();
   const displayName = user?.user?.username || user?.username || 'User';
   const initial = displayName?.[0]?.toUpperCase() || 'U';
+  const email = user?.user?.email || user?.email;
+
+  const [avatar, setAvatar] = useState(null);
+
+  useEffect(() => {
+    if (email) {
+      setAvatar(localStorage.getItem(`avatar_${email}`));
+    }
+    const handleAvatarUpdate = (e) => setAvatar(e.detail);
+    window.addEventListener('avatarUpdated', handleAvatarUpdate);
+    return () => window.removeEventListener('avatarUpdated', handleAvatarUpdate);
+  }, [email]);
 
   return (
     <motion.aside
@@ -206,13 +218,13 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
           {/* Avatar with gradient ring */}
           <div className="relative flex-shrink-0">
             <div
-              className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-extrabold text-white"
+              className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-extrabold text-white overflow-hidden"
               style={{
-                background: 'linear-gradient(135deg, #6366f1, #a855f7, #ec4899)',
-                boxShadow: '0 0 0 2px rgba(99,102,241,0.3)',
+                background: 'var(--accent-indigo)',
+                boxShadow: '0 0 0 2px var(--sidebar-border)',
               }}
             >
-              {initial}
+              {avatar ? <img src={avatar} alt="Avatar" className="w-full h-full object-cover" /> : initial}
             </div>
             <span
               className="absolute bottom-0 right-0 w-2 h-2 rounded-full border-2"
@@ -332,13 +344,9 @@ const AppHeader = ({ title, subtitle }) => {
               borderColor: 'rgba(245,158,11,0.25)',
             }}
           >
-            <motion.span
-              animate={{ scale: [1, 1.2, 1] }}
-              transition={{ duration: 2, repeat: Infinity }}
-              className="text-sm"
-            >
+            <span className="text-sm">
               🔥
-            </motion.span>
+            </span>
             <span className="text-xs font-bold" style={{ color: 'var(--text-primary)' }}>
               {user?.streak || user?.data?.streak || 1}d
             </span>

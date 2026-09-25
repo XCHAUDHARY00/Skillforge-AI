@@ -66,24 +66,7 @@ const Login = () => {
         />
         <div className="bg-grid absolute inset-0 opacity-20" />
 
-        {/* Floating sparkles */}
-        {[
-          { top: '12%', left: '18%', size: 12, delay: 0 },
-          { top: '78%', left: '75%', size: 10, delay: 0.8 },
-          { top: '45%', left: '85%', size: 8, delay: 1.6 },
-          { top: '65%', left: '12%', size: 11, delay: 2.4 },
-          { top: '25%', left: '70%', size: 9, delay: 1.2 },
-        ].map((s, i) => (
-          <motion.div
-            key={i}
-            className="absolute pointer-events-none"
-            style={{ top: s.top, left: s.left }}
-            animate={{ opacity: [0.15, 0.7, 0.15], scale: [0.8, 1.2, 0.8], y: [0, -6, 0] }}
-            transition={{ duration: 3 + i * 0.5, repeat: Infinity, delay: s.delay, ease: 'easeInOut' }}
-          >
-            <Sparkles size={s.size} className="text-indigo-400" />
-          </motion.div>
-        ))}
+
 
         <div className="relative z-10 max-w-sm w-full">
           {/* Logo with neon glow */}

@@ -131,8 +131,46 @@ const ImpactBadge = ({ impact }) => {
   );
 };
 
+const getProjectSteps = (project) => {
+  return [
+    {
+      title: "Step 1: System Blueprint (Foundation 🏗️)",
+      explain: "Bhai, sabse pehle hum ek map banayenge ki system kaisa dikhega. Ghar banane se pehle jaise naksha banta hai, waisa hi. Isme hum decide karenge data kahan se aayega aur kahan jayega.",
+      code: "Plan your architecture: User -> Frontend (React) -> Backend API -> Database",
+      task: "Draw a simple block diagram on paper."
+    },
+    {
+      title: "Step 2: Environment Setup (Hathyar tayyar karo ⚔️)",
+      explain: `Ab hume coding ke tools ready karne hain. Hum ${project.skills[0] || 'framework'} ka naya project start karenge aur zaroori libraries install karenge.`,
+      code: "mkdir my_project\ncd my_project\npython -m venv venv\nsource venv/bin/activate\npip install -r requirements.txt",
+      task: "Create the project folder and setup environment."
+    },
+    {
+      title: "Step 3: Database Models (Data ka ghar 🏠)",
+      explain: "Database tables banani hongi taaki data properly save ho. Yahan pe hum models likhenge jo SQL ki jagah Python/JS me tables define karte hain.",
+      code: "class DataModel(models.Model):\n    name = models.CharField(max_length=100)\n    created_at = models.DateTimeField(auto_now_add=True)",
+      task: "Write your first model and run migrations."
+    },
+    {
+      title: "Step 4: API Endpoints (Waiter ka kaam 🛎️)",
+      explain: "Ab backend endpoints banayenge jo frontend ko data denge aur frontend se data lenge. GET, POST, PUT, DELETE operations yahan likhe jayenge.",
+      code: "@api_view(['GET'])\ndef get_data(request):\n    return Response({'message': 'Bhai data ready hai!'})",
+      task: "Create a simple GET endpoint and test it in browser."
+    },
+    {
+      title: "Step 5: Frontend Integration (Chehre ka shringar ✨)",
+      explain: "Last step! Ab API ko React UI ke saath connect karenge. User button dabayega, API call hogi aur data screen pe show hoga.",
+      code: "fetch('/api/data')\n  .then(res => res.json())\n  .then(data => console.log(data));",
+      task: "Fetch data from backend and display it."
+    }
+  ];
+};
+
 const Projects = () => {
   const [selected, setSelected] = useState(null);
+  const [learningProject, setLearningProject] = useState(null);
+  const [learningSteps, setLearningSteps] = useState(null);
+  const [loadingSteps, setLoadingSteps] = useState(false);
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [hasSkillGaps, setHasSkillGaps] = useState(false);
@@ -148,12 +186,73 @@ const Projects = () => {
       const res = await api.get('/skills_gap/');
       const gaps = res.data?.data?.skill_gaps || res.data?.skill_gaps || [];
       setHasSkillGaps(gaps.length > 0);
-      setProjects(deriveProjects(gaps));
+      
+      const gapNames = gaps.length > 0 ? gaps.map(g => g.skill_name || g.name).join(', ') : "React, Python, Django";
+      
+      const prompt = `You are an API returning JSON. Based on the user's skill gaps: ${gapNames}. Generate EXACTLY 3 personalized project ideas (1 Beginner, 1 Intermediate, 1 Advanced) that help them learn these skills.
+Return ONLY valid JSON in this exact format:
+[
+  {
+    "id": "1",
+    "title": "Project Title",
+    "description": "Short description...",
+    "skills": ["Skill 1", "Skill 2"],
+    "milestones": ["M1", "M2", "M3"],
+    "duration": "10-15 hours",
+    "difficulty": "Intermediate",
+    "impact": "High"
+  }
+]
+Do NOT return markdown blocks. Return plain JSON text.`;
+
+      const aiRes = await api.post('/chat/send/', { message: prompt });
+      const aiText = aiRes.data?.response || aiRes.data?.data?.response;
+      
+      let parsed = [];
+      try {
+        const jsonStr = (aiText || '').replace(/```json/gi, '').replace(/```/g, '').trim();
+        parsed = JSON.parse(jsonStr);
+      } catch (err) {
+        parsed = deriveProjects(gaps); // fallback to hardcoded
+      }
+      setProjects(Array.isArray(parsed) ? parsed : deriveProjects(gaps));
     } catch (e) {
-      // Fallback: use default project if API fails
       setProjects(deriveProjects([]));
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleStartLearning = async (project) => {
+    setLearningProject(project);
+    setSelected(null);
+    setLoadingSteps(true);
+    setLearningSteps(null);
+
+    const prompt = `Act as a friendly coding mentor talking in Hinglish (Bhai language). The user selected the project: "${project.title}".
+Skills: ${project.skills.join(', ')}
+Generate a long, detailed step-by-step tutorial (4 to 6 steps) on how to build it.
+Return ONLY valid JSON in this exact format:
+[
+  {
+    "title": "Step 1: ...",
+    "explain": "Bhai sabse pehle...",
+    "code": "commands or code snippets",
+    "task": "Your task is..."
+  }
+]
+Do NOT return markdown blocks. Return plain JSON text.`;
+
+    try {
+      const res = await api.post('/chat/send/', { message: prompt });
+      const aiText = res.data?.response || res.data?.data?.response;
+      const jsonStr = (aiText || '').replace(/```json/gi, '').replace(/```/g, '').trim();
+      const parsed = JSON.parse(jsonStr);
+      setLearningSteps(Array.isArray(parsed) ? parsed : getProjectSteps(project));
+    } catch (err) {
+      setLearningSteps(getProjectSteps(project)); // fallback
+    } finally {
+      setLoadingSteps(false);
     }
   };
 
@@ -162,6 +261,68 @@ const Projects = () => {
       <AppLayout title="Projects" subtitle="Build projects that prove your skills">
         <div className="flex items-center justify-center min-h-[60vh]">
           <Loader2 size={28} className="animate-spin text-indigo-400" />
+        </div>
+        <AIAssistant />
+      </AppLayout>
+    );
+  }
+
+  if (learningProject) {
+    const steps = learningSteps || [];
+    return (
+      <AppLayout title="Project Learning Mode" subtitle={`Learning: ${learningProject.title}`}>
+        <div className="p-6 max-w-4xl mx-auto pb-24">
+          <button 
+            onClick={() => setLearningProject(null)}
+            className="flex items-center gap-2 text-xs font-semibold mb-6 hover:text-indigo-400 transition-colors"
+            style={{ color: 'var(--text-muted)' }}
+          >
+            <ChevronRight className="rotate-180" size={14} /> Back to Projects
+          </button>
+
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
+            <h1 className="text-2xl font-extrabold mb-2" style={{ color: 'var(--text-primary)' }}>{learningProject.title}</h1>
+            <p className="text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{learningProject.description}</p>
+          </motion.div>
+
+          {loadingSteps ? (
+            <div className="flex flex-col items-center justify-center py-20 gap-4">
+              <Loader2 size={32} className="animate-spin text-indigo-400" />
+              <p className="text-xs text-indigo-300 font-semibold animate-pulse">AI Mentor is writing your custom project plan...</p>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {steps.map((step, i) => (
+              <motion.div 
+                key={i}
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: i * 0.1 }}
+                className="p-5 rounded-2xl border"
+                style={{ background: 'var(--bg-card)', borderColor: 'var(--bg-card-border)', boxShadow: 'var(--shadow-card)' }}
+              >
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-8 h-8 rounded-full bg-indigo-500/20 text-indigo-400 flex items-center justify-center font-bold text-sm">
+                    {i + 1}
+                  </div>
+                  <h3 className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>{step.title}</h3>
+                </div>
+                <div className="pl-11">
+                  <p className="text-xs mb-4 leading-relaxed" style={{ color: 'var(--text-muted)' }}>
+                    {step.explain}
+                  </p>
+                  <div className="p-3 rounded-xl bg-black/40 border mb-3 overflow-x-auto" style={{ borderColor: 'var(--bg-card-border)' }}>
+                    <code className="text-[11px] font-mono text-emerald-400 whitespace-pre">{step.code}</code>
+                  </div>
+                  <div className="flex items-center gap-2 p-2 rounded-lg bg-indigo-500/10 border border-indigo-500/20">
+                    <TrendingUp size={12} className="text-indigo-400 flex-shrink-0" />
+                    <span className="text-[10px] font-semibold text-indigo-300">Task: {step.task}</span>
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+          )}
         </div>
         <AIAssistant />
       </AppLayout>
@@ -272,6 +433,7 @@ const Projects = () => {
               </div>
             </div>
             <button id="project-start-btn"
+              onClick={() => handleStartLearning(selected)}
               className="w-full py-3 bg-gradient-to-r from-indigo-500 to-violet-600 rounded-xl text-sm font-semibold text-white transition-all hover:from-indigo-600 hover:to-violet-700">
               Start This Project
             </button>

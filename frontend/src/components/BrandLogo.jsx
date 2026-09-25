@@ -1,13 +1,11 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 
-// Counter ensures unique SVG gradient/filter IDs per mounted instance,
-// preventing collisions when multiple LogoMark components render simultaneously.
+// Counter ensures unique SVG gradient/filter IDs per mounted instance
 let _logoMarkCounter = 0;
 
 /**
- * LogoMark — A bold "SF" shield/hexagon mark with layered gradients and a
- * lightning-bolt accent. Designed to look sharp at any size.
+ * LogoMark — "Book & Birds" logo
  */
 export const LogoMark = ({ size = 32, animated = true, className = '' }) => {
   const idRef = React.useRef(null);
@@ -21,86 +19,54 @@ export const LogoMark = ({ size = 32, animated = true, className = '' }) => {
     <motion.div
       className={`flex-shrink-0 relative ${className}`}
       style={{ width: size, height: size }}
-      animate={animated ? {
-        filter: [
-          'drop-shadow(0 0 5px rgba(99,102,241,0.55))',
-          'drop-shadow(0 0 12px rgba(168,85,247,0.75))',
-          'drop-shadow(0 0 5px rgba(99,102,241,0.55))',
-        ],
-      } : {}}
-      transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+      whileHover={animated ? { scale: 1.05 } : {}}
     >
       <svg
         width={size}
         height={size}
-        viewBox="0 0 44 44"
+        viewBox="0 0 48 48"
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
       >
         <defs>
-          {/* Main background gradient — indigo → violet → fuchsia */}
-          <linearGradient id={`${id}-bg`} x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%"   stopColor="#4338ca" />
-            <stop offset="45%"  stopColor="#7c3aed" />
-            <stop offset="100%" stopColor="#c026d3" />
+          <linearGradient id={`${id}-bookGrad`} x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#0f172a" /> {/* Deep slate/navy */}
+            <stop offset="100%" stopColor="#1e3a8a" /> {/* Royal blue */}
           </linearGradient>
-
-          {/* Shine overlay on top half */}
-          <linearGradient id={`${id}-shine`} x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%"   stopColor="#ffffff" stopOpacity="0.18" />
-            <stop offset="100%" stopColor="#ffffff" stopOpacity="0" />
+          <linearGradient id={`${id}-birdGrad`} x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#0284c7" /> {/* Sky blue */}
+            <stop offset="100%" stopColor="#38bdf8" /> {/* Light blue */}
           </linearGradient>
-
-          {/* Lightning bolt gradient */}
-          <linearGradient id={`${id}-bolt`} x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%"   stopColor="#fde68a" />
-            <stop offset="100%" stopColor="#f59e0b" />
-          </linearGradient>
-
-          {/* Soft inner glow filter */}
-          <filter id={`${id}-glow`} x="-30%" y="-30%" width="160%" height="160%">
-            <feGaussianBlur stdDeviation="1.2" result="blur" />
-            <feComposite in="SourceGraphic" in2="blur" operator="over" />
-          </filter>
         </defs>
 
-        {/* ── Background shape: squircle (rounded square) ── */}
-        <rect x="1" y="1" width="42" height="42" rx="13"
-          fill={`url(#${id}-bg)`} />
-
-        {/* ── Glass shine on top half ── */}
-        <rect x="1" y="1" width="42" height="22" rx="13"
-          fill={`url(#${id}-shine)`} />
-
-        {/* ── Subtle border ring ── */}
-        <rect x="1" y="1" width="42" height="42" rx="13"
-          stroke="white" strokeOpacity="0.18" strokeWidth="1.2" fill="none" />
-
-        {/* ── Inner dark panel (card feel) ── */}
-        <rect x="6" y="6" width="32" height="32" rx="9"
-          fill="black" fillOpacity="0.22" />
-
-        {/* ── "S" letter — bold, clean, centred ── */}
-        {/* Top bar of S */}
-        <path
-          d="M27.5 15H19.5C17.6 15 16 16.6 16 18.5C16 20.4 17.6 22 19.5 22H24.5C26.4 22 28 23.6 28 25.5C28 27.4 26.4 29 24.5 29H16.5"
-          stroke="white"
-          strokeWidth="3"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          fill="none"
-          filter={`url(#${id}-glow)`}
-          strokeOpacity="0.95"
+        {/* ── Left Page ── */}
+        <path 
+          d="M 23 38 C 14 31 5 33 2 37 V 13 C 5 9 14 7 23 14 Z" 
+          fill={`url(#${id}-bookGrad)`} 
         />
+        {/* ── Right Page ── */}
+        <path 
+          d="M 25 38 C 34 31 43 33 46 37 V 13 C 43 9 34 7 25 14 Z" 
+          fill={`url(#${id}-bookGrad)`} 
+        />
+        
+        {/* ── Center binding line ── */}
+        <path d="M 24 14 V 37" stroke="#ffffff" strokeWidth="1.5" opacity="0.3" strokeLinecap="round" />
 
-        {/* ── Lightning bolt accent (top-right corner) ── */}
-        <path
-          d="M31 10L28.5 15.5H31.5L29 20"
-          stroke={`url(#${id}-bolt)`}
-          strokeWidth="1.6"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          fill="none"
+        {/* ── Bird 1 (Bottom Left) ── */}
+        <path 
+          d="M 20 23 C 24 18 29 20 31 25 C 28 22 23 23 20 28 C 18 23 14 22 11 25 C 14 20 17 18 20 23 Z" 
+          fill={`url(#${id}-birdGrad)`} 
+        />
+        {/* ── Bird 2 (Middle) ── */}
+        <path 
+          d="M 32 15 C 35 11 39 13 41 17 C 39 15 35 15 32 19 C 30 15 27 14 24 17 C 27 13 29 11 32 15 Z" 
+          fill={`url(#${id}-birdGrad)`} 
+        />
+        {/* ── Bird 3 (Top Right) ── */}
+        <path 
+          d="M 40 6 C 43 3 46 5 48 8 C 46 6 43 6 40 9 C 38 6 35 5 33 8 C 35 5 37 3 40 6 Z" 
+          fill={`url(#${id}-birdGrad)`} 
         />
       </svg>
     </motion.div>
@@ -108,67 +74,49 @@ export const LogoMark = ({ size = 32, animated = true, className = '' }) => {
 };
 
 /**
- * WordMark — "Skill" bold white + "Forge" vivid gradient + a sleek "AI" pill.
- * size: 'sm' | 'md' | 'lg' | 'xl'
+ * WordMark — "SKILLFORGE" with subtitle "ELEVATING EDUCATION & SKILLS"
  */
-export const WordMark = ({ size = 'md', showAI = true, className = '' }) => {
+export const WordMark = ({ size = 'md', showAI = false, className = '' }) => {
   const sizes = {
-    sm: { skill: 'text-sm',   forge: 'text-sm',   tag: 'text-[8px]  px-1.5 py-0.5', gap: 'gap-0' },
-    md: { skill: 'text-base', forge: 'text-base', tag: 'text-[9px]  px-1.5 py-0.5', gap: 'gap-0' },
-    lg: { skill: 'text-xl',  forge: 'text-xl',  tag: 'text-[11px] px-2   py-0.5', gap: 'gap-0.5' },
-    xl: { skill: 'text-2xl',  forge: 'text-2xl',  tag: 'text-xs    px-2   py-0.5', gap: 'gap-1' },
+    sm: { main: 'text-xs', sub: 'text-[6px]', gap: 'gap-0' },
+    md: { main: 'text-base', sub: 'text-[8px]', gap: 'gap-0' },
+    lg: { main: 'text-xl', sub: 'text-[10px]', gap: 'gap-0' },
+    xl: { main: 'text-2xl', sub: 'text-[12px]', gap: 'gap-0' },
   };
   const s = sizes[size] || sizes.md;
 
   return (
-    <span
-      className={`flex items-center ${s.gap} whitespace-nowrap ${className}`}
-      style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 800, letterSpacing: '-0.02em' }}
-    >
-      {/* "Skill" — solid, primary text colour */}
-      <span className={s.skill} style={{ color: 'var(--text-primary)' }}>
-        Skill
-      </span>
-
-      {/* "Forge" — vivid indigo→violet→fuchsia gradient */}
+    <div className={`flex flex-col justify-center ${s.gap} ${className}`}>
+      {/* Main Brand Name */}
       <span
-        className={s.forge}
-        style={{
-          background: 'linear-gradient(135deg, #818cf8 0%, #a78bfa 40%, #e879f9 80%, #f0abfc 100%)',
-          WebkitBackgroundClip: 'text',
-          WebkitTextFillColor: 'transparent',
-          backgroundClip: 'text',
+        className={`${s.main} leading-none tracking-wide`}
+        style={{ 
+          fontFamily: 'Space Grotesk, sans-serif', 
+          fontWeight: 800,
+          color: 'var(--text-primary)'
         }}
       >
-        Forge
+        SKILLFORGE
       </span>
-
-      {/* "AI" pill — glassy indigo */}
-      {showAI && (
-        <span
-          className={`${s.tag} rounded-full font-bold tracking-widest leading-none ml-1.5`}
-          style={{
-            background: 'linear-gradient(135deg, rgba(99,102,241,0.25), rgba(168,85,247,0.25))',
-            border: '1px solid rgba(167,139,250,0.45)',
-            color: '#c4b5fd',
-            letterSpacing: '0.08em',
-          }}
-        >
-          AI
-        </span>
-      )}
-    </span>
+      {/* Subtitle */}
+      <span
+        className={`${s.sub} font-bold tracking-widest leading-none mt-[2px] uppercase opacity-70`}
+        style={{ 
+          fontFamily: 'Inter, sans-serif',
+          color: 'var(--text-secondary)'
+        }}
+      >
+        Elevating Education & Skills
+      </span>
+    </div>
   );
 };
 
 /**
- * BrandLogo — LogoMark + WordMark together, the full brand unit.
- * iconSize: number
- * wordSize: 'sm' | 'md' | 'lg' | 'xl'
- * collapsed: hide wordmark (sidebar collapsed state)
+ * BrandLogo — LogoMark + WordMark together
  */
 const BrandLogo = ({ iconSize = 32, wordSize = 'md', collapsed = false, animated = true, className = '' }) => (
-  <div className={`flex items-center gap-2.5 overflow-hidden ${className}`}>
+  <div className={`flex items-center gap-3 overflow-hidden ${className}`}>
     <LogoMark size={iconSize} animated={animated} />
     {!collapsed && <WordMark size={wordSize} />}
   </div>

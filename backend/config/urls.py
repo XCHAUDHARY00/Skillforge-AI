@@ -21,7 +21,7 @@ from django.http import JsonResponse
 def api_health_check(request):
     return JsonResponse({
         "status": "online",
-        "name": "SkillForge AI Backend API",
+        "name": "SkillForge Backend API",
         "version": "1.0.0",
         "documentation": "https://github.com/XCHAUDHARY00/CareerMind-A"
     })

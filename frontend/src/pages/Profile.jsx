@@ -4,7 +4,7 @@ import {
   User, Edit2, Save, X, Target, Trash2, Plus, Loader2,
   CheckCircle, AlertCircle, Zap, Star, GraduationCap,
   Briefcase, GitBranch, Sparkles, Trophy, Flame, BookOpen,
-  CalendarDays, AtSign, Shield, TrendingUp
+  CalendarDays, AtSign, Shield, TrendingUp, Upload
 } from 'lucide-react';
 import AppLayout from '../components/layout/AppLayout';
 import AIAssistant from '../components/ai/AIAssistant';
@@ -63,12 +63,10 @@ const ScoreRing3D = ({ score, size = 130 }) => {
 
   return (
     <div ref={ref} className="relative" style={{ width: size, height: size }}>
-      {/* Outer glow rings */}
-      <motion.div
-        animate={{ scale: [1, 1.06, 1], opacity: [0.3, 0.6, 0.3] }}
-        transition={{ duration: 3, repeat: Infinity }}
+      {/* Outer glow ring */}
+      <div
         className="absolute inset-[-6px] rounded-full"
-        style={{ background: 'radial-gradient(circle, rgba(99,102,241,0.15) 0%, transparent 70%)' }}
+        style={{ background: 'radial-gradient(circle, rgba(99,102,241,0.12) 0%, transparent 70%)' }}
       />
       <svg width={size} height={size} className="-rotate-90">
         {/* Track */}
@@ -105,13 +103,12 @@ const ScoreRing3D = ({ score, size = 130 }) => {
         />
         <defs>
           <linearGradient id="scoreGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor="#6366f1" />
-            <stop offset="50%" stopColor="#a855f7" />
-            <stop offset="100%" stopColor="#14b8a6" />
+            <stop offset="0%" stopColor="#4f46e5" />
+            <stop offset="100%" stopColor="#818cf8" />
           </linearGradient>
           <linearGradient id="scoreGrad2" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor="#ec4899" />
-            <stop offset="100%" stopColor="#8b5cf6" />
+            <stop offset="0%" stopColor="#4f46e5" />
+            <stop offset="100%" stopColor="#6366f1" />
           </linearGradient>
         </defs>
       </svg>
@@ -122,11 +119,7 @@ const ScoreRing3D = ({ score, size = 130 }) => {
           initial={{ opacity: 0, scale: 0.5 }}
           animate={inView ? { opacity: 1, scale: 1 } : {}}
           transition={{ duration: 0.6, delay: 1, type: 'spring' }}
-          style={{
-            background: 'linear-gradient(135deg, #818cf8, #a78bfa)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-          }}
+          style={{ color: 'var(--text-primary)' }}
         >
           {score}
         </motion.span>
@@ -153,12 +146,9 @@ const SkillChip = ({ skill, index, onRemove }) => {
         background: `${color}14`,
         borderColor: `${color}30`,
         color,
-        boxShadow: `0 2px 8px ${color}18`,
       }}
     >
-      <motion.span
-        animate={{ opacity: [0.5, 1, 0.5] }}
-        transition={{ duration: 2.5, repeat: Infinity, delay: index * 0.2 }}
+      <span
         className="w-1.5 h-1.5 rounded-full flex-shrink-0"
         style={{ background: color }}
       />
@@ -187,20 +177,17 @@ const MiniStatCard = ({ icon: Icon, label, value, color, delay = 0 }) => (
       className="p-4 rounded-2xl border relative overflow-hidden"
       style={{ background: 'var(--bg-card)', borderColor: 'var(--bg-card-border)' }}
     >
-      {/* Gradient top bar */}
+      {/* Gradient top bar - minimal */}
       <div className="absolute top-0 left-0 right-0 h-0.5"
-        style={{ background: `linear-gradient(90deg, transparent, ${color}60, transparent)` }} />
-      {/* Corner glow */}
-      <div className="absolute top-0 right-0 w-12 h-12 rounded-full blur-xl pointer-events-none"
-        style={{ background: `${color}18` }} />
+        style={{ background: color, opacity: 0.5 }} />
       <div className="flex items-center justify-between">
         <div>
           <p className="text-[10px] font-medium uppercase tracking-wider mb-0.5" style={{ color: 'var(--text-muted)' }}>{label}</p>
-          <p className="text-base font-extrabold" style={{ color }}>{value}</p>
+          <p className="text-base font-extrabold" style={{ color: 'var(--text-primary)' }}>{value}</p>
         </div>
         <div className="w-9 h-9 rounded-xl flex items-center justify-center"
-          style={{ background: `${color}15`, border: `1px solid ${color}25` }}>
-          <Icon size={16} style={{ color, filter: `drop-shadow(0 0 4px ${color}80)` }} />
+          style={{ background: `${color}10`, border: `1px solid ${color}20` }}>
+          <Icon size={16} style={{ color }} />
         </div>
       </div>
     </div>
@@ -227,8 +214,8 @@ const SectionCard = ({ title, icon: Icon, iconColor = '#6366f1', children, delay
         <div className="flex items-center justify-between mb-5">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-xl flex items-center justify-center"
-              style={{ background: `${iconColor}15`, border: `1px solid ${iconColor}25` }}>
-              <Icon size={15} style={{ color: iconColor, filter: `drop-shadow(0 0 4px ${iconColor}80)` }} />
+              style={{ background: `${iconColor}10`, border: `1px solid ${iconColor}20` }}>
+              <Icon size={15} style={{ color: iconColor }} />
             </div>
             <h3 className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>{title}</h3>
           </div>
@@ -283,11 +270,50 @@ const FormActions = ({ onCancel, saving, saveLabel = 'Save' }) => (
   </div>
 );
 
+const AVATARS = [
+  '/avatars/avatar1_1790346834316.jpg',
+  '/avatars/avatar2_1790346846734.jpg',
+  '/avatars/avatar3_1790346863286.jpg',
+  '/avatars/avatar4_1790346876990.jpg',
+  '/avatars/avatar5_1790346956028.jpg',
+];
+
 /* ═══════════════════════════════════════════════════════════════════════════
    MAIN PROFILE PAGE
 ═══════════════════════════════════════════════════════════════════════════ */
 const Profile = () => {
   const [profileData, setProfileData] = useState(null);
+  const [selectedAvatar, setSelectedAvatar] = useState(null);
+
+  useEffect(() => {
+    if (profileData?.user?.email) {
+      const savedAvatar = localStorage.getItem(`avatar_${profileData.user.email}`);
+      if (savedAvatar) setSelectedAvatar(savedAvatar);
+    }
+  }, [profileData?.user?.email]);
+
+  const handleAvatarSelect = (imgUrl) => {
+    setSelectedAvatar(imgUrl);
+    if (profileData?.user?.email) {
+      if (imgUrl) {
+        localStorage.setItem(`avatar_${profileData.user.email}`, imgUrl);
+      } else {
+        localStorage.removeItem(`avatar_${profileData.user.email}`);
+      }
+      window.dispatchEvent(new CustomEvent('avatarUpdated', { detail: imgUrl }));
+    }
+  };
+
+  const handleFileUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      handleAvatarSelect(reader.result);
+    };
+    reader.readAsDataURL(file);
+  };
+
   const [isEditing, setIsEditing] = useState(false);
   const [form, setForm] = useState({ experience: '', bio: '' });
   const [loading, setLoading] = useState(true);
@@ -471,77 +497,93 @@ const Profile = () => {
           className="relative rounded-3xl overflow-hidden"
           style={{ background: 'var(--bg-card)', border: '1px solid var(--bg-card-border)' }}
         >
-          {/* Animated gradient banner behind avatar */}
+          {/* Clean minimal banner behind avatar */}
           <div className="absolute top-0 left-0 right-0 h-28 overflow-hidden">
-            <motion.div
-              animate={{ backgroundPosition: ['0% 50%', '100% 50%', '0% 50%'] }}
-              transition={{ duration: 8, repeat: Infinity, ease: 'linear' }}
+            <div
               className="absolute inset-0"
               style={{
-                background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 20%, #ec4899 40%, #f97316 60%, #14b8a6 80%, #4f46e5 100%)',
-                backgroundSize: '300% 300%',
-                opacity: 0.18,
+                background: 'linear-gradient(135deg, var(--bg-card-border) 0%, transparent 100%)',
+                opacity: 0.5,
               }}
             />
             {/* Subtle grid overlay */}
-            <div className="absolute inset-0 bg-grid opacity-30" />
-            {/* Shimmer scan line */}
-            <motion.div
-              animate={{ x: ['-100%', '200%'] }}
-              transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut', repeatDelay: 2 }}
-              className="absolute top-0 bottom-0 w-1/3 pointer-events-none"
-              style={{ background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.06), transparent)' }}
-            />
+            <div className="absolute inset-0 bg-grid opacity-10" />
           </div>
 
-          {/* Floating orbs */}
-          <motion.div
-            animate={{ x: ['-5%', '5%', '-5%'], y: ['-5%', '5%', '-5%'], scale: [1, 1.1, 1] }}
-            transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
+          {/* Subtle corner glow */}
+          <div
             className="absolute top-[-20px] right-[-20px] w-40 h-40 rounded-full pointer-events-none"
-            style={{ background: 'radial-gradient(circle, rgba(99,102,241,0.2) 0%, transparent 70%)' }}
-          />
-          <motion.div
-            animate={{ x: ['5%', '-5%', '5%'], y: ['5%', '-5%', '5%'] }}
-            transition={{ duration: 10, repeat: Infinity, ease: 'easeInOut' }}
-            className="absolute top-4 left-1/3 w-24 h-24 rounded-full pointer-events-none"
-            style={{ background: 'radial-gradient(circle, rgba(236,72,153,0.12) 0%, transparent 70%)' }}
+            style={{ background: 'radial-gradient(circle, rgba(99,102,241,0.12) 0%, transparent 70%)' }}
           />
 
           <div className="relative px-6 pb-6 pt-6">
             <div className="flex flex-col sm:flex-row items-start sm:items-end gap-5">
 
-              {/* Avatar — 3D perspective tilt on hover */}
-              <motion.div
-                whileHover={{ rotateY: 15, rotateX: -8, scale: 1.05 }}
-                transition={{ type: 'spring', stiffness: 200, damping: 15 }}
-                style={{ transformStyle: 'preserve-3d', perspective: '600px', transformOrigin: 'center' }}
-                className="relative flex-shrink-0"
-              >
-                <div
-                  className="w-20 h-20 rounded-2xl flex items-center justify-center text-3xl font-extrabold text-white"
-                  style={{
-                    background: 'linear-gradient(135deg, #4f46e5, #a855f7, #ec4899)',
-                    boxShadow: '0 0 0 3px rgba(99,102,241,0.3), 0 8px 30px rgba(99,102,241,0.4)',
-                  }}
+              {/* Avatar — Clean hover scale, no tilt */}
+              <div className="flex flex-col gap-3">
+                <motion.div
+                  whileHover={{ scale: 1.02 }}
+                  transition={{ type: 'spring', stiffness: 200, damping: 15 }}
+                  className="relative flex-shrink-0"
                 >
-                  {initial}
-                </div>
-                {/* Online dot */}
-                <motion.div
-                  animate={{ scale: [1, 1.3, 1], opacity: [0.8, 1, 0.8] }}
-                  transition={{ duration: 2, repeat: Infinity }}
-                  className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 bg-emerald-400"
-                  style={{ borderColor: 'var(--bg-card)', boxShadow: '0 0 8px rgba(52,211,153,0.7)' }}
-                />
-                {/* Sparkle orbiting */}
-                <motion.div
-                  animate={{ rotate: 360 }}
-                  transition={{ duration: 6, repeat: Infinity, ease: 'linear' }}
-                  className="absolute -inset-2 rounded-2xl pointer-events-none"
-                  style={{ border: '1px dashed rgba(99,102,241,0.2)' }}
-                />
-              </motion.div>
+                  <div
+                    className="w-20 h-20 rounded-2xl flex items-center justify-center text-3xl font-extrabold text-white overflow-hidden"
+                    style={{
+                      background: 'var(--accent-indigo)',
+                      boxShadow: '0 0 0 3px var(--bg-card)',
+                    }}
+                  >
+                    {selectedAvatar ? (
+                      <img src={selectedAvatar} alt="Avatar" className="w-full h-full object-cover" />
+                    ) : (
+                      initial
+                    )}
+                  </div>
+                  {/* Online dot */}
+                  <div
+                    className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 bg-emerald-400 z-10"
+                    style={{ borderColor: 'var(--bg-card)', boxShadow: '0 0 6px rgba(52,211,153,0.5)' }}
+                  />
+                </motion.div>
+
+                {/* Avatar Picker when Editing */}
+                <AnimatePresence>
+                  {isEditing && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className="flex flex-wrap gap-2 mt-1 max-w-[200px]"
+                    >
+                      {AVATARS.map((img, i) => (
+                        <button
+                          key={i}
+                          onClick={() => handleAvatarSelect(img)}
+                          className={`w-9 h-9 rounded-xl overflow-hidden flex-shrink-0 border-2 transition-all ${selectedAvatar === img ? 'border-indigo-500 scale-110' : 'border-transparent opacity-60 hover:opacity-100'}`}
+                        >
+                          <img src={img} alt={`Avatar ${i+1}`} className="w-full h-full object-cover" />
+                        </button>
+                      ))}
+                      <button
+                         onClick={() => handleAvatarSelect(null)}
+                         className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 border-2 transition-all ${!selectedAvatar ? 'border-indigo-500 scale-110' : 'border-transparent opacity-60 hover:opacity-100'}`}
+                         style={{ background: 'var(--bg-secondary)' }}
+                         title="Remove Avatar"
+                      >
+                        <X size={14} style={{ color: 'var(--text-muted)' }} />
+                      </button>
+                      <label
+                         className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 border-2 transition-all border-transparent opacity-60 hover:opacity-100 cursor-pointer"
+                         style={{ background: 'var(--bg-secondary)' }}
+                         title="Upload Custom Image"
+                      >
+                        <Upload size={14} style={{ color: 'var(--text-muted)' }} />
+                        <input type="file" accept="image/*" onChange={handleFileUpload} className="hidden" />
+                      </label>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
 
               {/* Info */}
               <div className="flex-1 min-w-0">
@@ -573,16 +615,16 @@ const Profile = () => {
                   className="flex flex-wrap gap-2"
                 >
                   <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl border text-[11px] font-semibold"
-                    style={{ background: 'rgba(99,102,241,0.12)', borderColor: 'rgba(99,102,241,0.3)', color: '#818cf8' }}>
+                    style={{ background: 'var(--bg-secondary)', borderColor: 'var(--bg-card-border)', color: 'var(--text-secondary)' }}>
                     <Target size={10} /> {targetRole}
                   </span>
                   <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl border text-[11px] font-semibold"
-                    style={{ background: 'rgba(245,158,11,0.12)', borderColor: 'rgba(245,158,11,0.3)', color: '#fbbf24' }}>
+                    style={{ background: 'var(--bg-secondary)', borderColor: 'var(--bg-card-border)', color: 'var(--text-secondary)' }}>
                     <Flame size={10} /> {profileData?.streak || 1} day streak
                   </span>
                   {profileData?.github_username && (
                     <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl border text-[11px] font-semibold"
-                      style={{ background: 'rgba(16,185,129,0.12)', borderColor: 'rgba(16,185,129,0.3)', color: '#34d399' }}>
+                      style={{ background: 'var(--bg-secondary)', borderColor: 'var(--bg-card-border)', color: 'var(--text-secondary)' }}>
                       <GitBranch size={10} /> @{profileData.github_username}
                     </span>
                   )}
@@ -686,11 +728,9 @@ const Profile = () => {
                       >
                         {/* Timeline dot */}
                         <div className="mt-1 flex-shrink-0">
-                          <motion.div
-                            animate={{ scale: [1, 1.3, 1], opacity: [0.6, 1, 0.6] }}
-                            transition={{ duration: 3, repeat: Infinity, delay: i * 0.5 }}
+                          <div
                             className="w-2.5 h-2.5 rounded-full"
-                            style={{ background: 'linear-gradient(135deg, #3b82f6, #6366f1)', boxShadow: '0 0 6px rgba(59,130,246,0.7)' }}
+                            style={{ background: 'linear-gradient(135deg, #3b82f6, #6366f1)', boxShadow: '0 0 4px rgba(59,130,246,0.5)' }}
                           />
                         </div>
                         <div className="flex-1 min-w-0">
@@ -910,9 +950,9 @@ const Profile = () => {
                 className="rounded-2xl border p-5 text-center relative overflow-hidden"
                 style={{ background: 'var(--bg-card)', borderColor: 'var(--bg-card-border)' }}
               >
-                {/* Gradient top */}
+                {/* Clean top bar */}
                 <div className="absolute top-0 left-0 right-0 h-0.5"
-                  style={{ background: 'linear-gradient(90deg, #6366f1, #a855f7, #14b8a6)' }} />
+                  style={{ background: 'var(--accent-indigo)', opacity: 0.5 }} />
                 <div className="absolute inset-0 pointer-events-none"
                   style={{ background: 'radial-gradient(ellipse at top, rgba(99,102,241,0.06) 0%, transparent 60%)' }} />
                 <div className="relative">
@@ -921,14 +961,12 @@ const Profile = () => {
                   <div className="flex justify-center mb-3">
                     <ScoreRing3D score={profileData?.readiness_score || 50} size={130} />
                   </div>
-                  <motion.p
-                    animate={{ opacity: [0.6, 1, 0.6] }}
-                    transition={{ duration: 3, repeat: Infinity }}
+                  <p
                     className="text-[11px] font-semibold"
                     style={{ color: '#10b981' }}
                   >
                     ● On Track
-                  </motion.p>
+                  </p>
                 </div>
               </div>
             </motion.div>
@@ -1007,13 +1045,9 @@ const Profile = () => {
                       opacity: 0.4,
                     }}
                   >
-                    <motion.span
-                      className="text-xl"
-                      animate={a.earned ? { y: [0, -2, 0] } : {}}
-                      transition={{ duration: 2, repeat: Infinity, delay: i * 0.3, ease: 'easeInOut' }}
-                    >
+                    <span className="text-xl">
                       {a.icon}
-                    </motion.span>
+                    </span>
                     <p className="text-[8px] text-center leading-tight font-medium" style={{ color: a.earned ? '#fbbf24' : 'var(--text-muted)' }}>
                       {a.title}
                     </p>

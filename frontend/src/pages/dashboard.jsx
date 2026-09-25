@@ -216,11 +216,6 @@ const Dashboard = () => {
             </h1>
             <p className="text-sm mt-0.5" style={{ color: 'var(--text-muted)' }}>Here's your career progress today.</p>
           </div>
-          <div className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-xl border"
-            style={{ background: 'var(--bg-card)', borderColor: 'var(--bg-card-border)' }}>
-            <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full" />
-            <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>All systems online</span>
-          </div>
         </motion.div>
 
         {/* First Complete Profile Warning Banner */}

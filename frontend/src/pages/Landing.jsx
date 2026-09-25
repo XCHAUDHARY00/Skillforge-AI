@@ -33,7 +33,7 @@ const Landing = () => {
   const [activeTab, setActiveTab] = useState('dna');
   const [demoChat, setDemoChat] = useState('');
   const [chatLog, setChatLog] = useState([
-    { sender: 'ai', message: "Hi! I'm your SkillForge AI Coach. Ask me how to accelerate your software engineering career!" }
+    { sender: 'ai', message: "Hi! I'm your SkillForge Coach. Ask me how to accelerate your software engineering career!" }
   ]);
 
   const statsRef = useRef(null);
@@ -398,7 +398,7 @@ const Landing = () => {
                   <span className="text-xs text-indigo-400 font-semibold uppercase tracking-wider">AI Skill Mapping</span>
                   <h3 className="text-xl font-bold mt-1 mb-3">Career DNA Engine</h3>
                   <p className="text-xs leading-relaxed mb-4" style={{ color: 'var(--text-secondary)' }}>
-                    SkillForge AI constructs your multidimensional skill matrix by analyzing your target roles, known languages, and domain experience.
+                    SkillForge constructs your multidimensional skill matrix by analyzing your target roles, known languages, and domain experience.
                   </p>
                   <div className="space-y-2 mb-4">
                     {['Backend Systems: 85% match', 'Distributed Systems & Databases: High', 'DevOps & Containers: Target Gap'].map((item, i) => (
@@ -742,7 +742,7 @@ const Landing = () => {
               <Terminal size={18} />
             </motion.div>
             <div>
-              <h3 className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>Try SkillForge AI Assistant Live</h3>
+              <h3 className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>Try SkillForge Assistant Live</h3>
               <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>Test a career question right now</p>
             </div>
           </div>
@@ -814,7 +814,7 @@ const Landing = () => {
               <span className="gradient-text">Engineering Legacy?</span>
             </h2>
             <p className="text-sm mb-8 max-w-xl mx-auto leading-relaxed" style={{ color: 'var(--text-muted)' }}>
-              Join thousands of software engineers using SkillForge AI to analyze skills, optimize resumes, and master technical interviews.
+              Join thousands of software engineers using SkillForge to analyze skills, optimize resumes, and master technical interviews.
             </p>
             <motion.button
               onClick={() => navigate('/register')}
@@ -835,7 +835,7 @@ const Landing = () => {
       {/* FOOTER */}
       <footer className="py-8 border-t text-center" style={{ borderColor: 'var(--bg-card-border)' }}>
         <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-          © 2026 SkillForge AI — Next-Gen AI Career Operating System for Developers.
+          © 2026 SkillForge — Career Operating System for Developers.
         </p>
         <div className="flex items-center justify-center gap-6 mt-3">
           {['Privacy Policy', 'Terms of Service', 'Contact'].map(link => (

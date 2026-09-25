@@ -33,7 +33,7 @@ const TypingIndicator = () => (
 const AIAssistant = () => {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState([
-    { id: 1, sender: 'ai', text: "Hi! I'm your SkillForge AI Coach. Ask me anything about your career journey. 🚀" }
+    { id: 1, sender: 'ai', text: "Hi! I'm your SkillForge Coach. Ask me anything about your career journey. 🚀" }
   ]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
