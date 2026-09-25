@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, X, Send } from 'lucide-react';
+import { Sparkles, X, Send, Mic, MicOff } from 'lucide-react';
 import api from '../../api';
 import { LogoMark } from '../BrandLogo';
 
@@ -39,6 +39,62 @@ const AIAssistant = () => {
   const [loading, setLoading] = useState(false);
   const endRef = useRef(null);
   const inputRef = useRef(null);
+  
+  const [isListening, setIsListening] = useState(false);
+  const recognitionRef = useRef(null);
+
+  const speakText = (text) => {
+    if (!('speechSynthesis' in window)) return;
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    const voices = window.speechSynthesis.getVoices();
+    const preferredVoice = voices.find(v => 
+      v.name.includes('Google') || 
+      v.name.includes('Samantha') || 
+      v.name.includes('Zira') || 
+      v.name.includes('Fiona')
+    ) || voices.find(v => v.lang.startsWith('en'));
+    
+    if (preferredVoice) utterance.voice = preferredVoice;
+    utterance.rate = 0.95;
+    window.speechSynthesis.speak(utterance);
+  };
+
+  const startListening = () => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert("Voice input not supported in your browser.");
+      return;
+    }
+    try {
+      const rec = new SpeechRecognition();
+      rec.continuous = false;
+      rec.interimResults = false;
+      rec.lang = 'en-US';
+      rec.onstart = () => setIsListening(true);
+      rec.onresult = (event) => {
+        const transcript = event.results[0][0].transcript;
+        setInput(prev => prev ? prev + ' ' + transcript : transcript);
+      };
+      rec.onend = () => setIsListening(false);
+      recognitionRef.current = rec;
+      rec.start();
+    } catch (e) {
+      setIsListening(false);
+    }
+  };
+
+  const stopListening = () => {
+    if (recognitionRef.current) recognitionRef.current.stop();
+    setIsListening(false);
+  };
+
+  // Stop speaking when chatbot is closed
+  useEffect(() => {
+    if (!open && 'speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+    }
+  }, [open]);
 
   useEffect(() => {
     if (open) {
@@ -74,8 +130,10 @@ const AIAssistant = () => {
       setMessages(prev => prev.filter(m => !m.isTemp));
 
       if (response.data.status === 'success') {
-        const aiMsg = { id: Date.now() + 1, sender: 'ai', text: response.data.data.response };
+        const aiResponseText = response.data.data.response;
+        const aiMsg = { id: Date.now() + 1, sender: 'ai', text: aiResponseText };
         setMessages(prev => [...prev, aiMsg]);
+        speakText(aiResponseText);
       } else {
         setMessages(prev => [...prev, { id: Date.now() + 1, sender: 'ai', text: "I'm having trouble right now. Please try again." }]);
       }
@@ -235,6 +293,15 @@ const AIAssistant = () => {
                   onFocus={e => e.target.style.borderColor = 'rgba(99,102,241,0.5)'}
                   onBlur={e => e.target.style.borderColor = 'var(--bg-card-border)'}
                 />
+                <button
+                  type="button"
+                  onClick={isListening ? stopListening : startListening}
+                  className={`w-9 h-9 rounded-xl flex items-center justify-center transition-colors flex-shrink-0 border ${
+                    isListening ? 'bg-red-500/10 border-red-500/30 text-red-400' : 'bg-indigo-500/10 border-indigo-500/20 text-indigo-400 hover:bg-indigo-500/20'
+                  }`}
+                >
+                  {isListening ? <MicOff size={13} className="animate-pulse" /> : <Mic size={13} />}
+                </button>
                 <motion.button
                   type="submit"
                   disabled={!input.trim() || loading}
